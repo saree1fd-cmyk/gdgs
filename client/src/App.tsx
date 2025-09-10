@@ -22,6 +22,7 @@ import Location from "./pages/Location";
 import OrderTracking from "./pages/OrderTracking";
 import Settings from "./pages/Settings";
 import Privacy from "./pages/Privacy";
+import SearchPage from "./pages/SearchPage";
 // Admin pages removed - now handled separately
 import NotFound from "@/pages/not-found";
 
@@ -118,6 +119,7 @@ function Router() {
   return (
     <Switch>
       <Route path="/" component={Home} />
+      <Route path="/search" component={SearchPage} />
       <Route path="/restaurant/:id" component={Restaurant} />
       <Route path="/cart" component={Cart} />
       <Route path="/profile" component={Profile} />

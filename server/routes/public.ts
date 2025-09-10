@@ -199,41 +199,28 @@ router.get("/search", async (req, res) => {
     const { q, type = 'all' } = req.query;
     
     if (!q) {
-      return res.json({ restaurants: [], menuItems: [] });
+      return res.json({ restaurants: [], categories: [], menuItems: [] });
     }
 
     const searchTerm = `%${q}%`;
-    let results: any = {};
+    let results: any = { restaurants: [], categories: [], menuItems: [] };
 
     if (type === 'all' || type === 'restaurants') {
-      results.restaurants = await db.query.restaurants.findMany({
-        where: and(
-          eq(schema.restaurants.isActive, true),
-          or(
-            like(schema.restaurants.name, searchTerm),
-            like(schema.restaurants.description, searchTerm)
-          )
-        ),
-        limit: 10
-      });
+      results.restaurants = await dbStorage.searchRestaurants(searchTerm);
+    }
+
+    if (type === 'all' || type === 'categories') {
+      results.categories = await dbStorage.searchCategories(searchTerm);
     }
 
     if (type === 'all' || type === 'menu') {
-      results.menuItems = await db.query.menuItems.findMany({
-        where: and(
-          or(
-            like(schema.menuItems.name, searchTerm),
-            like(schema.menuItems.description, searchTerm)
-          )
-        ),
-        limit: 20
-      });
+      results.menuItems = await dbStorage.searchMenuItems(searchTerm);
     }
 
     res.json(results);
   } catch (error) {
     console.error("خطأ في البحث:", error);
-    res.status(500).json({ error: "خطأ في الخادم" });
+    res.status(500).json({ message: "Failed to search" });
   }
 });
 
