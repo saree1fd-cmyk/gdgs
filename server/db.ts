@@ -267,6 +267,34 @@ export class DatabaseStorage implements IStorage {
     return result.rowCount > 0;
   }
 
+  // Search methods
+  async searchRestaurants(searchTerm: string): Promise<Restaurant[]> {
+    return await this.db.select().from(restaurants).where(
+      and(
+        eq(restaurants.isActive, true),
+        or(
+          like(restaurants.name, searchTerm),
+          like(restaurants.description, searchTerm)
+        )
+      )
+    );
+  }
+
+  async searchMenuItems(searchTerm: string): Promise<MenuItem[]> {
+    return await this.db.select().from(menuItems).where(
+      or(
+        like(menuItems.name, searchTerm),
+        like(menuItems.description, searchTerm)
+      )
+    );
+  }
+
+  async searchCategories(searchTerm: string): Promise<Category[]> {
+    return await this.db.select().from(categories).where(
+      like(categories.name, searchTerm)
+    );
+  }
+
   // UI Settings (using systemSettings)
   async getUiSettings(): Promise<SystemSettings[]> {
     try {
