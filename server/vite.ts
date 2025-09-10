@@ -1,4 +1,4 @@
-import * as vite from "vite";
+import { createServer } from "vite";
 import express, { type Express } from "express";
 import fs from "fs";
 import path from "path";
@@ -27,7 +27,7 @@ export async function setupVite(app: Express, server: Server) {
   };
 
   // إنشاء Vite server
-  const viteServer = await vite.createServer({
+  const viteServer = await createServer({
     ...viteConfig,
     configFile: false,
     server: serverOptions,
