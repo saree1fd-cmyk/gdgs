@@ -1062,6 +1062,33 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Search Routes
+  app.get("/api/search", async (req, res) => {
+    try {
+      const { q: query, category } = req.query;
+      
+      if (!query) {
+        return res.status(400).json({ error: "Query parameter is required" });
+      }
+
+      const searchTerm = `%${query}%`;
+      
+      const restaurants = await dbStorage.searchRestaurants(searchTerm, category as string);
+      const categories = await dbStorage.searchCategories(searchTerm);
+      const menuItems = await dbStorage.searchMenuItems(searchTerm);
+
+      res.json({
+        restaurants,
+        categories,
+        menuItems,
+        total: restaurants.length + categories.length + menuItems.length
+      });
+    } catch (error) {
+      console.error("Search error:", error);
+      res.status(500).json({ error: "Internal server error" });
+    }
+  });
+
   const httpServer = createServer(app);
   return httpServer;
 }

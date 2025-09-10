@@ -2,11 +2,11 @@ import { pgTable, text, uuid, timestamp, boolean, integer, decimal, varchar } fr
 import { createInsertSchema, createSelectSchema } from "drizzle-zod";
 import { z } from "zod";
 
-// Users table
+// Users table (customers)
 export const users = pgTable("users", {
   id: uuid("id").primaryKey().defaultRandom(),
   username: varchar("username", { length: 50 }).notNull().unique(),
-  password: text("password").notNull(), // تمت الإضافة
+  password: text("password").notNull(),
   name: text("name").notNull(),
   phone: varchar("phone", { length: 20 }),
   email: varchar("email", { length: 100 }),
@@ -14,6 +14,9 @@ export const users = pgTable("users", {
   isActive: boolean("is_active").default(true).notNull(),
   createdAt: timestamp("created_at").defaultNow().notNull(),
 });
+
+// Customers table (alias for users)
+export const customers = users;
 
 // User addresses table
 export const userAddresses = pgTable("user_addresses", {
@@ -33,8 +36,11 @@ export const userAddresses = pgTable("user_addresses", {
 export const categories = pgTable("categories", {
   id: uuid("id").primaryKey().defaultRandom(),
   name: varchar("name", { length: 100 }).notNull(),
-  icon: varchar("icon", { length: 100 }).notNull(), // تم تغيير إلى notNull
+  icon: varchar("icon", { length: 100 }).notNull(),
+  sortOrder: integer("sort_order").default(0),
   isActive: boolean("is_active").default(true).notNull(),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
 });
 
 // Restaurants table
@@ -88,18 +94,22 @@ export const drivers = pgTable("drivers", {
 // Orders table
 export const orders = pgTable("orders", {
   id: uuid("id").primaryKey().defaultRandom(),
+  orderNumber: varchar("order_number", { length: 50 }).notNull().unique(),
   customerName: varchar("customer_name", { length: 100 }).notNull(),
   customerPhone: varchar("customer_phone", { length: 20 }).notNull(),
   customerEmail: varchar("customer_email", { length: 100 }),
+  customerId: uuid("customer_id").references(() => users.id),
   deliveryAddress: text("delivery_address").notNull(),
   notes: text("notes"),
-  paymentMethod: varchar("payment_method", { length: 50 }).notNull(), // تمت الإضافة
+  paymentMethod: varchar("payment_method", { length: 50 }).notNull(),
   status: varchar("status", { length: 50 }).default("pending").notNull(),
   items: text("items").notNull(), // JSON string
-  subtotal: decimal("subtotal", { precision: 10, scale: 2 }).notNull(), // تمت الإضافة
+  subtotal: decimal("subtotal", { precision: 10, scale: 2 }).notNull(),
   deliveryFee: decimal("delivery_fee", { precision: 10, scale: 2 }).notNull(),
+  total: decimal("total", { precision: 10, scale: 2 }).notNull(),
   totalAmount: decimal("total_amount", { precision: 10, scale: 2 }).notNull(),
   estimatedTime: varchar("estimated_time", { length: 50 }).default("30-45 دقيقة"),
+  driverEarnings: decimal("driver_earnings", { precision: 10, scale: 2 }).default("0"),
   restaurantId: uuid("restaurant_id").references(() => restaurants.id),
   driverId: uuid("driver_id").references(() => drivers.id),
   createdAt: timestamp("created_at").defaultNow().notNull(),
@@ -142,16 +152,20 @@ export const adminSessions = pgTable("admin_sessions", {
   createdAt: timestamp("created_at").defaultNow().notNull(),
 });
 
-// UI settings table
-export const uiSettings = pgTable("ui_settings", {
-  id: uuid("id").primaryKey().defaultRandom(), // تمت الإضافة
+// System settings table
+export const systemSettings = pgTable("system_settings", {
+  id: uuid("id").primaryKey().defaultRandom(),
   key: varchar("key", { length: 100 }).notNull().unique(),
   value: text("value").notNull(),
+  category: varchar("category", { length: 100 }).default("general"),
   description: text("description"),
-  isActive: boolean("is_active").default(true), // تمت الإضافة
-  createdAt: timestamp("created_at").defaultNow().notNull(), // تمت الإضافة
+  isActive: boolean("is_active").default(true).notNull(),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
   updatedAt: timestamp("updated_at").defaultNow().notNull(),
 });
+
+// UI settings table (alias for system_settings)
+export const uiSettings = systemSettings;
 
 // Zod schemas for validation
 export const insertUserSchema = createInsertSchema(users);
@@ -241,6 +255,17 @@ export const notifications = pgTable("notifications", {
   createdAt: timestamp("created_at").defaultNow().notNull(),
 });
 
+// Order tracking table
+export const orderTracking = pgTable("order_tracking", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  orderId: uuid("order_id").references(() => orders.id).notNull(),
+  status: varchar("status", { length: 50 }).notNull(),
+  message: text("message").notNull(),
+  createdBy: uuid("created_by").notNull(),
+  createdByType: varchar("created_by_type", { length: 50 }).notNull(),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+});
+
 // Wallets table
 export const wallets = pgTable("wallets", {
   id: uuid("id").primaryKey().defaultRandom(),
@@ -262,8 +287,8 @@ export const walletTransactions = pgTable("wallet_transactions", {
   createdAt: timestamp("created_at").defaultNow().notNull(),
 });
 
-// System settings table
-export const systemSettings = pgTable("system_settings", {
+// System settings table (removed duplicate)
+export const systemSettingsTable = pgTable("system_settings", {
   id: uuid("id").primaryKey().defaultRandom(),
   key: varchar("key", { length: 100 }).unique().notNull(),
   value: text("value").notNull(),
@@ -318,8 +343,8 @@ export const selectWalletTransactionSchema = createSelectSchema(walletTransactio
 export type WalletTransaction = z.infer<typeof selectWalletTransactionSchema>;
 export type InsertWalletTransaction = z.infer<typeof insertWalletTransactionSchema>;
 
-export const insertSystemSettingsSchema = createInsertSchema(systemSettings);
-export const selectSystemSettingsSchema = createSelectSchema(systemSettings);
+export const insertSystemSettingsSchema = createInsertSchema(systemSettingsTable);
+export const selectSystemSettingsSchema = createSelectSchema(systemSettingsTable);
 export type SystemSettings = z.infer<typeof selectSystemSettingsSchema>;
 export type InsertSystemSettings = z.infer<typeof insertSystemSettingsSchema>;
 

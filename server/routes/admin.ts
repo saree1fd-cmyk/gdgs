@@ -1,5 +1,5 @@
 import express from "express";
-import { db } from "../db.js";
+import { dbStorage } from "../db.js";
 import * as schema from "../../shared/schema.js";
 import { eq, desc, and, or, like, count, sql } from "drizzle-orm";
 import bcrypt from "bcrypt";
@@ -15,17 +15,13 @@ const requireAdmin = async (req: any, res: any, next: any) => {
     }
 
     const token = authHeader.split(' ')[1];
-    const session = await db.query.adminSessions.findFirst({
-      where: eq(schema.adminSessions.token, token),
-    });
+    const session = await dbStorage.getAdminSession(token);
 
     if (!session || session.expiresAt < new Date()) {
       return res.status(401).json({ error: "جلسة منتهية الصلاحية" });
     }
 
-    const admin = await db.query.adminUsers.findFirst({
-      where: eq(schema.adminUsers.id, session.adminId!)
-    });
+    const admin = await dbStorage.getAdminByEmail(session.adminId!);
 
     if (!admin || admin.userType !== 'admin') {
       return res.status(403).json({ error: "صلاحيات غير كافية" });
@@ -45,15 +41,7 @@ router.post("/login", async (req, res) => {
     const { email, password } = req.body;
 
     // البحث بالإيميل أو اسم المستخدم
-    const admin = await db.query.adminUsers.findFirst({
-      where: and(
-        or(
-          eq(schema.adminUsers.email, email),
-          eq(schema.adminUsers.username, email)
-        ),
-        eq(schema.adminUsers.userType, "admin")
-      )
-    });
+    const admin = await dbStorage.getAdminByEmail(email);
 
     if (!admin) {
       return res.status(401).json({ message: "البريد الإلكتروني أو كلمة المرور غير صحيحة" });
@@ -73,7 +61,7 @@ router.post("/login", async (req, res) => {
     const token = `admin_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
     const expiresAt = new Date(Date.now() + 24 * 60 * 60 * 1000); // 24 ساعة
 
-    await db.insert(schema.adminSessions).values({
+    await dbStorage.createAdminSession({
       adminId: admin.id,
       token,
       userType: "admin",
@@ -102,8 +90,7 @@ router.post("/logout", requireAdmin, async (req: any, res) => {
     const authHeader = req.headers.authorization;
     const token = authHeader.split(' ')[1];
 
-    await db.delete(schema.adminSessions)
-      .where(eq(schema.adminSessions.token, token));
+    await dbStorage.deleteAdminSession(token);
 
     res.json({ success: true });
   } catch (error) {
@@ -698,6 +685,60 @@ router.put("/settings/:key", requireAdmin, async (req, res) => {
     
     res.json(updatedSetting);
   } catch (error) {
+    res.status(500).json({ error: "خطأ في الخادم" });
+  }
+});
+
+// إعدادات واجهة المستخدم (متاحة للعامة)
+router.get("/ui-settings", async (req, res) => {
+  try {
+    const settings = await db.query.systemSettings.findMany({
+      where: eq(schema.systemSettings.isActive, true),
+      orderBy: [schema.systemSettings.category, schema.systemSettings.key]
+    });
+    
+    res.json(settings);
+  } catch (error) {
+    res.status(500).json({ error: "خطأ في الخادم" });
+  }
+});
+
+// تحديث أوقات العمل
+router.put("/business-hours", requireAdmin, async (req, res) => {
+  try {
+    const { opening_time, closing_time, store_status } = req.body;
+    
+    const updates = [];
+    
+    if (opening_time) {
+      updates.push(
+        db.update(schema.systemSettings)
+          .set({ value: opening_time, updatedAt: new Date() })
+          .where(eq(schema.systemSettings.key, 'opening_time'))
+      );
+    }
+    
+    if (closing_time) {
+      updates.push(
+        db.update(schema.systemSettings)
+          .set({ value: closing_time, updatedAt: new Date() })
+          .where(eq(schema.systemSettings.key, 'closing_time'))
+      );
+    }
+    
+    if (store_status) {
+      updates.push(
+        db.update(schema.systemSettings)
+          .set({ value: store_status, updatedAt: new Date() })
+          .where(eq(schema.systemSettings.key, 'store_status'))
+      );
+    }
+    
+    await Promise.all(updates);
+    
+    res.json({ success: true, message: "تم تحديث أوقات العمل بنجاح" });
+  } catch (error) {
+    console.error("خطأ في تحديث أوقات العمل:", error);
     res.status(500).json({ error: "خطأ في الخادم" });
   }
 });

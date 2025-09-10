@@ -3,7 +3,7 @@ import { neon } from "@neondatabase/serverless";
 import { 
   adminUsers, adminSessions, categories, restaurantSections, restaurants, 
   menuItems, users, userAddresses, orders, specialOffers, 
-  notifications, ratings, systemSettings, drivers,
+  notifications, ratings, systemSettingsTable as systemSettings, drivers, orderTracking,
   type AdminUser, type InsertAdminUser,
   type AdminSession, type InsertAdminSession,
   type Category, type InsertCategory,
@@ -20,7 +20,7 @@ import {
   type Driver, type InsertDriver
 } from "@shared/schema";
 import { IStorage } from "./storage";
-import { eq, and, desc, sql, or } from "drizzle-orm";
+import { eq, and, desc, sql, or, like } from "drizzle-orm";
 
 // Database connection
 let db: ReturnType<typeof drizzle> | null = null;
@@ -337,6 +337,95 @@ export class DatabaseStorage implements IStorage {
       .where(eq(notifications.id, id))
       .returning();
     return updated;
+  }
+
+  // Search Functions
+  async searchRestaurants(searchTerm: string, categoryId?: string): Promise<Restaurant[]> {
+    const conditions = [
+      or(
+        like(restaurants.name, searchTerm),
+        like(restaurants.description, searchTerm)
+      )
+    ];
+    
+    if (categoryId) {
+      conditions.push(eq(restaurants.categoryId, categoryId));
+    }
+    
+    return await this.db.select().from(restaurants)
+      .where(and(...conditions))
+      .orderBy(restaurants.name);
+  }
+
+  async searchCategories(searchTerm: string): Promise<Category[]> {
+    return await this.db.select().from(categories)
+      .where(like(categories.name, searchTerm))
+      .orderBy(categories.name);
+  }
+
+  async searchMenuItems(searchTerm: string): Promise<MenuItem[]> {
+    return await this.db.select().from(menuItems)
+      .where(
+        or(
+          like(menuItems.name, searchTerm),
+          like(menuItems.description, searchTerm),
+          like(menuItems.category, searchTerm)
+        )
+      )
+      .orderBy(menuItems.name);
+  }
+
+  // Enhanced Restaurant Functions
+  async getRestaurants(filters?: { categoryId?: string; area?: string; isOpen?: boolean }): Promise<Restaurant[]> {
+    const conditions = [];
+    
+    if (filters?.categoryId) {
+      conditions.push(eq(restaurants.categoryId, filters.categoryId));
+    }
+    
+    if (filters?.isOpen !== undefined) {
+      conditions.push(eq(restaurants.isOpen, filters.isOpen));
+    }
+    
+    if (conditions.length > 0) {
+      return await this.db.select().from(restaurants)
+        .where(and(...conditions))
+        .orderBy(restaurants.name);
+    }
+    
+    return await this.db.select().from(restaurants).orderBy(restaurants.name);
+  }
+
+  // Order Functions
+  async getOrderById(id: string): Promise<Order | undefined> {
+    const [order] = await this.db.select().from(orders).where(eq(orders.id, id));
+    return order;
+  }
+
+  async getCustomerOrders(customerPhone: string): Promise<Order[]> {
+    return await this.db.select().from(orders)
+      .where(eq(orders.customerPhone, customerPhone))
+      .orderBy(desc(orders.createdAt));
+  }
+
+  async updateOrderStatus(orderId: string, status: string): Promise<Order | undefined> {
+    const [updated] = await this.db.update(orders)
+      .set({ status, updatedAt: new Date() })
+      .where(eq(orders.id, orderId))
+      .returning();
+    return updated;
+  }
+
+  // Order Tracking Functions
+  async createOrderTracking(tracking: any): Promise<any> {
+    const [newTracking] = await this.db.insert(orderTracking).values(tracking).returning();
+    return newTracking;
+  }
+
+  async getOrderTracking(orderId: string): Promise<any[]> {
+    return await this.db.select().from(orderTracking)
+      .where(eq(orderTracking.orderId, orderId))
+      .orderBy(desc(orderTracking.createdAt));
   }
 }
 
