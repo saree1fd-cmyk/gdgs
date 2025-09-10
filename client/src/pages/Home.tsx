@@ -16,9 +16,14 @@ import {
   Star, 
   Heart,
   Plus,
-  Menu
+  Menu,
+  ShoppingBag,
+  Building2,
+  Stethoscope,
+  Settings
 } from 'lucide-react';
 import type { Restaurant } from '@shared/schema';
+import TimingBanner from '@/components/TimingBanner';
 
 export default function Home() {
   const [, setLocation] = useLocation();
@@ -28,69 +33,64 @@ export default function Home() {
     queryKey: ['/api/restaurants'],
   });
 
+  const { data: categories } = useQuery({
+    queryKey: ['/api/categories'],
+  });
+
+  // فلترة المطاعم حسب التصنيف المحدد
+  const filteredRestaurants = restaurants?.filter(restaurant => {
+    if (selectedCategory === 'all') return true;
+    if (selectedCategory === 'restaurants') return restaurant.categoryId !== null;
+    if (selectedCategory === 'meat') return restaurant.categoryId === 'meat-category';
+    if (selectedCategory === 'pastries') return restaurant.categoryId === 'pastries-category';
+    return restaurant.categoryId === selectedCategory;
+  }) || [];
+
   const handleRestaurantClick = (restaurantId: string) => {
     setLocation(`/restaurant/${restaurantId}`);
   };
 
   return (
     <div className="min-h-screen bg-gray-50">
-      {/* Header with red gradient */}
-      <header className="header-gradient text-white p-4">
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-2">
-            <MapPin className="h-5 w-5" />
-            <div>
-              <h1 className="font-bold text-lg">توصيل ولى عدن</h1>
-              <p className="text-xs opacity-90">اختار العنوان ↓</p>
-            </div>
-          </div>
-          <div className="flex items-center gap-3">
-            <Bell className="h-6 w-6" />
-            <Search className="h-6 w-6" />
-            <User className="h-6 w-6" />
-            <Menu className="h-6 w-6" />
-          </div>
-        </div>
-      </header>
 
-      {/* Timing Banner */}
-      <div className="bg-gray-100 py-3">
-        <div className="px-4 text-center">
-          <div className="orange-gradient text-white px-4 py-2 rounded-full inline-flex items-center gap-2 text-sm">
-            <Clock className="h-4 w-4" />
-            <span>أوقات الدوام من الساعة 11:00 من حتى 11:09 م</span>
-            <span className="bg-white/20 px-2 py-1 rounded text-xs">مغلق</span>
-          </div>
-        </div>
-      </div>
+      {/* Timing Banner - Dynamic from admin settings */}
+      <TimingBanner />
 
       {/* Main Content */}
       <main className="p-4">
         {/* Category Grid */}
         <section className="mb-6">
           <div className="grid grid-cols-4 gap-3">
-            <div className="text-center cursor-pointer" onClick={() => setSelectedCategory('meat')}>
+            <div className={`text-center cursor-pointer ${
+              selectedCategory === 'meat' ? 'transform scale-105' : ''
+            }`} onClick={() => setSelectedCategory('meat')}>
               <div className="w-16 h-16 mx-auto mb-2 bg-white rounded-2xl shadow-sm flex items-center justify-center border border-gray-100">
                 <Beef className="h-8 w-8 text-red-500" />
               </div>
               <h4 className="text-xs font-medium text-gray-700">اللحوم</h4>
             </div>
             
-            <div className="text-center cursor-pointer" onClick={() => setSelectedCategory('pastries')}>
+            <div className={`text-center cursor-pointer ${
+              selectedCategory === 'pastries' ? 'transform scale-105' : ''
+            }`} onClick={() => setSelectedCategory('pastries')}>
               <div className="w-16 h-16 mx-auto mb-2 bg-white rounded-2xl shadow-sm flex items-center justify-center border border-gray-100">
                 <Cookie className="h-8 w-8 text-yellow-600" />
               </div>
               <h4 className="text-xs font-medium text-gray-700">الطويلات</h4>
             </div>
             
-            <div className="text-center cursor-pointer" onClick={() => setSelectedCategory('restaurants')}>
+            <div className={`text-center cursor-pointer ${
+              selectedCategory === 'restaurants' ? 'transform scale-105' : ''
+            }`} onClick={() => setSelectedCategory('restaurants')}>
               <div className="w-16 h-16 mx-auto mb-2 bg-white rounded-2xl shadow-sm flex items-center justify-center border border-gray-100">
                 <UtensilsCrossed className="h-8 w-8 text-orange-500" />
               </div>
               <h4 className="text-xs font-medium text-gray-700">المطاعم</h4>
             </div>
             
-            <div className="text-center cursor-pointer" onClick={() => setSelectedCategory('all')}>
+            <div className={`text-center cursor-pointer ${
+              selectedCategory === 'all' ? 'transform scale-105' : ''
+            }`} onClick={() => setSelectedCategory('all')}>
               <div className="w-16 h-16 mx-auto mb-2 bg-white rounded-2xl shadow-sm flex items-center justify-center border border-gray-100">
                 <Menu className="h-8 w-8 text-blue-500" />
               </div>
@@ -277,21 +277,13 @@ export default function Home() {
                     </div>
                     
                     {/* Bottom Action Button */}
-                    <div className="mt-3">
-                      <Button 
-                        size="sm" 
-                        className="bg-red-600 hover:bg-red-700 text-white px-6 py-1 text-xs rounded-full"
-                      >
-                        مغلق
-                      </Button>
-                    </div>
                   </div>
                 </div>
               </div>
             ))}
             
             {/* Database restaurants when available */}
-            {restaurants && restaurants.length > 0 && restaurants.map((restaurant) => (
+            {filteredRestaurants && filteredRestaurants.length > 0 && filteredRestaurants.map((restaurant) => (
               <div 
                 key={restaurant.id}
                 className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden cursor-pointer hover:shadow-md transition-shadow"
@@ -327,25 +319,22 @@ export default function Home() {
                         <Heart className="h-4 w-4 text-gray-400 cursor-pointer hover:text-red-500 mt-2" />
                       </div>
                     </div>
-                    <div className="mt-3">
-                      <Button 
-                        size="sm" 
-                        className={`px-6 py-1 text-xs rounded-full ${
-                          restaurant.isOpen 
-                            ? 'bg-green-600 hover:bg-green-700 text-white' 
-                            : 'bg-red-600 hover:bg-red-700 text-white'
-                        }`}
-                      >
-                        {restaurant.isOpen ? 'مفتوح' : 'مغلق'}
-                      </Button>
-                    </div>
                   </div>
                 </div>
               </div>
             ))}
             
             {/* Empty state */}
-            {(!restaurants || restaurants.length === 0) && isLoading && (
+            {(!filteredRestaurants || filteredRestaurants.length === 0) && !isLoading && (
+              <div className="text-center py-8">
+                <UtensilsCrossed className="h-16 w-16 mx-auto text-gray-300 mb-4" />
+                <h3 className="text-lg font-medium text-gray-600 mb-2">لا توجد مطاعم</h3>
+                <p className="text-gray-500">لا توجد مطاعم متاحة في هذا التصنيف حالياً</p>
+              </div>
+            )}
+            
+            {/* Loading state */}
+            {isLoading && (
               <div className="space-y-4">
                 {[...Array(3)].map((_, i) => (
                   <div key={i} className="bg-white rounded-2xl border border-gray-100 overflow-hidden">
@@ -364,6 +353,51 @@ export default function Home() {
           </div>
         </section>
       </main>
+      
+      {/* Interactive Bottom Banner */}
+      <div className="fixed bottom-0 left-0 right-0 max-w-md mx-auto bg-white border-t border-gray-200 px-4 py-3 z-50">
+        <div className="grid grid-cols-4 gap-2">
+          <div 
+            className="text-center cursor-pointer p-2 rounded-lg hover:bg-gray-50 transition-colors" 
+            onClick={() => setLocation('/profile')}
+          >
+            <div className="w-10 h-10 mx-auto mb-1 bg-blue-100 rounded-lg flex items-center justify-center">
+              <User className="h-5 w-5 text-blue-600" />
+            </div>
+            <span className="text-xs font-medium text-gray-700">الملف الشخصي</span>
+          </div>
+          
+          <div 
+            className="text-center cursor-pointer p-2 rounded-lg hover:bg-gray-50 transition-colors" 
+            onClick={() => setSelectedCategory('all')}
+          >
+            <div className="w-10 h-10 mx-auto mb-1 bg-green-100 rounded-lg flex items-center justify-center">
+              <Menu className="h-5 w-5 text-green-600" />
+            </div>
+            <span className="text-xs font-medium text-gray-700">كل التصنيفات</span>
+          </div>
+          
+          <div 
+            className="text-center cursor-pointer p-2 rounded-lg hover:bg-gray-50 transition-colors" 
+            onClick={() => setSelectedCategory('restaurants')}
+          >
+            <div className="w-10 h-10 mx-auto mb-1 bg-orange-100 rounded-lg flex items-center justify-center">
+              <UtensilsCrossed className="h-5 w-5 text-orange-600" />
+            </div>
+            <span className="text-xs font-medium text-gray-700">المطاعم</span>
+          </div>
+          
+          <div 
+            className="text-center cursor-pointer p-2 rounded-lg hover:bg-gray-50 transition-colors" 
+            onClick={() => setLocation('/settings')}
+          >
+            <div className="w-10 h-10 mx-auto mb-1 bg-purple-100 rounded-lg flex items-center justify-center">
+              <Settings className="h-5 w-5 text-purple-600" />
+            </div>
+            <span className="text-xs font-medium text-gray-700">الإعدادات</span>
+          </div>
+        </div>
+      </div>
     </div>
   );
 }
