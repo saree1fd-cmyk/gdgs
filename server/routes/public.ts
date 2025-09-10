@@ -1,5 +1,5 @@
 import express from "express";
-import { db } from "../db.js";
+import { dbStorage } from "../db.js";
 import * as schema from "../../shared/schema.js";
 import { eq, desc, and, or, like, sql } from "drizzle-orm";
 
@@ -8,11 +8,7 @@ const router = express.Router();
 // جلب التصنيفات
 router.get("/categories", async (req, res) => {
   try {
-    const categories = await db.query.categories.findMany({
-      where: eq(schema.categories.isActive, true),
-      orderBy: [schema.categories.sortOrder, schema.categories.name]
-    });
-    
+    const categories = await dbStorage.getCategories();
     res.json(categories);
   } catch (error) {
     console.error("خطأ في جلب التصنيفات:", error);
@@ -23,35 +19,21 @@ router.get("/categories", async (req, res) => {
 // جلب المطاعم
 router.get("/restaurants", async (req, res) => {
   try {
-    const { categoryId, search, page = 1, limit = 20 } = req.query;
-    const offset = (Number(page) - 1) * Number(limit);
-
-    let whereConditions = [];
+    const { categoryId, search } = req.query;
     
-    if (categoryId && categoryId !== 'all') {
-      whereConditions.push(eq(schema.restaurants.categoryId, categoryId as string));
-    }
-    
+    let restaurants;
     if (search) {
-      whereConditions.push(
-        or(
-          like(schema.restaurants.name, `%${search}%`),
-          like(schema.restaurants.description, `%${search}%`)
-        )
-      );
+      restaurants = await dbStorage.searchRestaurants(`%${search}%`, categoryId as string);
+    } else if (categoryId && categoryId !== 'all') {
+      restaurants = await dbStorage.getRestaurantsByCategory(categoryId as string);
+    } else {
+      restaurants = await dbStorage.getRestaurants();
     }
-
-    const restaurants = await db.query.restaurants.findMany({
-      where: and(...whereConditions),
-      limit: Number(limit),
-      offset,
-      orderBy: [schema.restaurants.name]
-    });
 
     res.json(restaurants);
   } catch (error) {
     console.error("خطأ في جلب المطاعم:", error);
-    res.status(500).json({ error: "خطأ في الخادم" });
+    res.status(500).json({ message: "Failed to fetch restaurants" });
   }
 });
 
@@ -60,18 +42,16 @@ router.get("/restaurants/:id", async (req, res) => {
   try {
     const { id } = req.params;
     
-    const restaurant = await db.query.restaurants.findFirst({
-      where: eq(schema.restaurants.id, id)
-    });
+    const restaurant = await dbStorage.getRestaurant(id);
 
     if (!restaurant) {
-      return res.status(404).json({ error: "المطعم غير موجود" });
+      return res.status(404).json({ message: "المطعم غير موجود" });
     }
 
     res.json(restaurant);
   } catch (error) {
     console.error("خطأ في جلب تفاصيل المطعم:", error);
-    res.status(500).json({ error: "خطأ في الخادم" });
+    res.status(500).json({ message: "Failed to fetch restaurant" });
   }
 });
 
@@ -81,38 +61,23 @@ router.get("/restaurants/:id/menu", async (req, res) => {
     const { id } = req.params;
     
     // التحقق من وجود المطعم
-    const restaurant = await db.query.restaurants.findFirst({
-      where: eq(schema.restaurants.id, id)
-    });
+    const restaurant = await dbStorage.getRestaurant(id);
 
     if (!restaurant) {
-      return res.status(404).json({ error: "المطعم غير موجود" });
+      return res.status(404).json({ message: "المطعم غير موجود" });
     }
 
-    // جلب عناصر القائمة مع الأقسام
-    const menuItems = await db.query.menuItems.findMany({
-      where: eq(schema.menuItems.restaurantId, id),
-      orderBy: [schema.menuItems.name]
-    });
-
-    // تجميع العناصر حسب القسم
-    const sections = await db.query.restaurantSections.findMany({
-      orderBy: [schema.restaurantSections.name]
-    });
-
-    const menuBySection = sections.map(section => ({
-      ...section,
-      items: menuItems.filter(item => item.category === section.name)
-    })).filter(section => section.items.length > 0);
+    // جلب عناصر القائمة
+    const menuItems = await dbStorage.getMenuItems(id);
 
     res.json({
       restaurant,
-      menu: menuBySection,
+      menu: [],
       allItems: menuItems
     });
   } catch (error) {
     console.error("خطأ في جلب قائمة المطعم:", error);
-    res.status(500).json({ error: "خطأ في الخادم" });
+    res.status(500).json({ message: "Failed to fetch menu items" });
   }
 });
 
