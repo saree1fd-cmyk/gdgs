@@ -1,6 +1,6 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { Plus, Edit, Trash2, Package, Save, X, DollarSign, Tag } from 'lucide-react';
+import { Plus, Edit, Trash2, Package, Save, X } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
@@ -34,27 +34,72 @@ export default function AdminMenuItems() {
     restaurantId: '',
   });
 
-  const { data: restaurants } = useQuery<Restaurant[]>({
-    queryKey: ['/api/restaurants'],
+  const { data: restaurantsData } = useQuery<{restaurants: Restaurant[]}>({
+    queryKey: ['/api/admin/restaurants'],
   });
 
+  const restaurants = restaurantsData?.restaurants || [];
+
+  // Set first restaurant as default when restaurants load
+  useEffect(() => {
+    if (restaurants && restaurants.length > 0 && !selectedRestaurant) {
+      setSelectedRestaurant(restaurants[0].id);
+    }
+  }, [restaurants, selectedRestaurant]);
+
   const { data: menuItems, isLoading } = useQuery<MenuItem[]>({
-    queryKey: ['/api/restaurants', selectedRestaurant, 'menu'],
+    queryKey: ['/api/admin/menu-items', selectedRestaurant],
     enabled: !!selectedRestaurant,
   });
 
   const createMenuItemMutation = useMutation({
     mutationFn: async (data: typeof formData) => {
+      // Validate required fields
+      if (!data.name.trim()) {
+        throw new Error('اسم الوجبة مطلوب');
+      }
+      if (!data.price.trim()) {
+        throw new Error('سعر الوجبة مطلوب');
+      }
+      if (!data.image.trim()) {
+        throw new Error('صورة الوجبة مطلوبة');
+      }
+      if (!data.category.trim()) {
+        throw new Error('تصنيف الوجبة مطلوب');
+      }
+      if (!data.restaurantId) {
+        throw new Error('يجب اختيار مطعم');
+      }
+
+      // Parse and validate numbers
+      const price = parseFloat(data.price);
+      if (isNaN(price) || price <= 0) {
+        throw new Error('سعر الوجبة يجب أن يكون رقم صحيح أكبر من صفر');
+      }
+
+      let originalPrice = null;
+      if (data.originalPrice && data.originalPrice.trim()) {
+        originalPrice = parseFloat(data.originalPrice);
+        if (isNaN(originalPrice) || originalPrice <= 0) {
+          throw new Error('السعر الأصلي يجب أن يكون رقم صحيح أكبر من صفر');
+        }
+      }
+
       const submitData = {
         ...data,
-        price: parseFloat(data.price),
-        originalPrice: data.originalPrice ? parseFloat(data.originalPrice) : null,
+        name: data.name.trim(),
+        description: data.description.trim(),
+        image: data.image.trim(),
+        category: data.category.trim(),
+        price: price.toString(), // Send as string to match decimal type
+        originalPrice: originalPrice ? originalPrice.toString() : null,
       };
-      const response = await apiRequest('POST', '/api/menu-items', submitData);
+      
+      const response = await apiRequest('POST', '/api/admin/menu-items', submitData);
       return response.json();
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['/api/restaurants', selectedRestaurant, 'menu'] });
+      queryClient.invalidateQueries({ queryKey: ['/api/admin/menu-items', selectedRestaurant] });
       toast({
         title: "تم إضافة الوجبة",
         description: "تم إضافة الوجبة الجديدة بنجاح",
@@ -62,20 +107,63 @@ export default function AdminMenuItems() {
       resetForm();
       setIsDialogOpen(false);
     },
+    onError: (error: Error) => {
+      toast({
+        variant: "destructive",
+        title: "خطأ في إضافة الوجبة",
+        description: error.message,
+      });
+    },
   });
 
   const updateMenuItemMutation = useMutation({
     mutationFn: async ({ id, data }: { id: string; data: typeof formData }) => {
+      // Validate required fields
+      if (!data.name.trim()) {
+        throw new Error('اسم الوجبة مطلوب');
+      }
+      if (!data.price.trim()) {
+        throw new Error('سعر الوجبة مطلوب');
+      }
+      if (!data.image.trim()) {
+        throw new Error('صورة الوجبة مطلوبة');
+      }
+      if (!data.category.trim()) {
+        throw new Error('تصنيف الوجبة مطلوب');
+      }
+      if (!data.restaurantId) {
+        throw new Error('يجب اختيار مطعم');
+      }
+
+      // Parse and validate numbers
+      const price = parseFloat(data.price);
+      if (isNaN(price) || price <= 0) {
+        throw new Error('سعر الوجبة يجب أن يكون رقم صحيح أكبر من صفر');
+      }
+
+      let originalPrice = null;
+      if (data.originalPrice && data.originalPrice.trim()) {
+        originalPrice = parseFloat(data.originalPrice);
+        if (isNaN(originalPrice) || originalPrice <= 0) {
+          throw new Error('السعر الأصلي يجب أن يكون رقم صحيح أكبر من صفر');
+        }
+      }
+
       const submitData = {
         ...data,
-        price: parseFloat(data.price),
-        originalPrice: data.originalPrice ? parseFloat(data.originalPrice) : null,
+        name: data.name.trim(),
+        description: data.description.trim(),
+        image: data.image.trim(),
+        category: data.category.trim(),
+        price: price.toString(), // Send as string to match decimal type
+        originalPrice: originalPrice ? originalPrice.toString() : null,
       };
-      const response = await apiRequest('PUT', `/api/menu-items/${id}`, submitData);
+      
+      const response = await apiRequest('PUT', `/api/admin/menu-items/${id}`, submitData);
       return response.json();
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['/api/restaurants', selectedRestaurant, 'menu'] });
+      queryClient.invalidateQueries({ queryKey: ['/api/admin/menu-items', selectedRestaurant] });
       toast({
         title: "تم تحديث الوجبة",
         description: "تم تحديث الوجبة بنجاح",
@@ -84,15 +172,22 @@ export default function AdminMenuItems() {
       setEditingItem(null);
       setIsDialogOpen(false);
     },
+    onError: (error: Error) => {
+      toast({
+        variant: "destructive",
+        title: "خطأ في تحديث الوجبة",
+        description: error.message,
+      });
+    },
   });
 
   const deleteMenuItemMutation = useMutation({
     mutationFn: async (id: string) => {
-      const response = await apiRequest('DELETE', `/api/menu-items/${id}`);
+      const response = await apiRequest('DELETE', `/api/admin/menu-items/${id}`);
       return response.json();
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['/api/restaurants', selectedRestaurant, 'menu'] });
+      queryClient.invalidateQueries({ queryKey: ['/api/admin/menu-items', selectedRestaurant] });
       toast({
         title: "تم حذف الوجبة",
         description: "تم حذف الوجبة بنجاح",
@@ -120,8 +215,8 @@ export default function AdminMenuItems() {
     setFormData({
       name: item.name,
       description: item.description || '',
-      price: item.price,
-      originalPrice: item.originalPrice || '',
+      price: item.price?.toString() || '',
+      originalPrice: item.originalPrice?.toString() || '',
       image: item.image,
       category: item.category,
       isAvailable: item.isAvailable,
@@ -143,7 +238,36 @@ export default function AdminMenuItems() {
       return;
     }
 
-    const dataWithRestaurant = { ...formData, restaurantId: selectedRestaurant };
+    // Validate price
+    const price = parseFloat(formData.price);
+    if (isNaN(price) || price <= 0) {
+      toast({
+        title: "خطأ",
+        description: "يرجى إدخال سعر صحيح للوجبة",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    // Validate original price if provided
+    if (formData.originalPrice) {
+      const originalPrice = parseFloat(formData.originalPrice);
+      if (isNaN(originalPrice) || originalPrice <= 0) {
+        toast({
+          title: "خطأ",
+          description: "يرجى إدخال السعر الأصلي صحيح",
+          variant: "destructive",
+        });
+        return;
+      }
+    }
+
+    const dataWithRestaurant = { 
+      ...formData, 
+      restaurantId: selectedRestaurant,
+      // Ensure originalPrice is a string or empty string 
+      originalPrice: formData.originalPrice.trim() || ''
+    };
 
     if (editingItem) {
       updateMenuItemMutation.mutate({ id: editingItem.id, data: dataWithRestaurant });
@@ -155,7 +279,17 @@ export default function AdminMenuItems() {
   const toggleItemStatus = (item: MenuItem, field: 'isAvailable' | 'isSpecialOffer') => {
     updateMenuItemMutation.mutate({
       id: item.id,
-      data: { ...formData, [field]: !item[field] }
+      data: { 
+        name: item.name,
+        description: item.description || '',
+        price: item.price || '',
+        originalPrice: item.originalPrice || '',
+        image: item.image,
+        category: item.category,
+        isAvailable: field === 'isAvailable' ? !item[field] : item.isAvailable,
+        isSpecialOffer: field === 'isSpecialOffer' ? !item[field] : item.isSpecialOffer,
+        restaurantId: item.restaurantId || ''
+      }
     });
   };
 
@@ -251,14 +385,42 @@ export default function AdminMenuItems() {
 
                 <div>
                   <Label htmlFor="image">رابط صورة الوجبة</Label>
-                  <Input
-                    id="image"
-                    value={formData.image}
-                    onChange={(e) => setFormData(prev => ({ ...prev, image: e.target.value }))}
-                    placeholder="https://example.com/food-image.jpg"
-                    required
-                    data-testid="input-menu-item-image"
-                  />
+                  <div className="flex gap-2">
+                    <Input
+                      id="image"
+                      value={formData.image}
+                      onChange={(e) => setFormData(prev => ({ ...prev, image: e.target.value }))}
+                      placeholder="https://example.com/food-image.jpg"
+                      required
+                      data-testid="input-menu-item-image"
+                      className="flex-1"
+                    />
+                    <Button
+                      type="button"
+                      variant="outline"
+                      onClick={() => document.getElementById('menu-item-file-upload')?.click()}
+                      data-testid="button-select-menu-image"
+                    >
+                      اختيار صورة
+                    </Button>
+                    <input
+                      id="menu-item-file-upload"
+                      type="file"
+                      accept="image/*"
+                      className="hidden"
+                      onChange={(e) => {
+                        const file = e.target.files?.[0];
+                        if (file) {
+                          const reader = new FileReader();
+                          reader.onload = (event) => {
+                            const result = event.target?.result as string;
+                            setFormData(prev => ({ ...prev, image: result }));
+                          };
+                          reader.readAsDataURL(file);
+                        }
+                      }}
+                    />
+                  </div>
                 </div>
 
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">

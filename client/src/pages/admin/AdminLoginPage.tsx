@@ -10,7 +10,7 @@ import { Loader2, Shield, Mail, Lock, Eye, EyeOff } from 'lucide-react';
 
 export default function AdminLoginPage() {
   const [, setLocation] = useLocation();
-  const { login, user, isLoading } = useAuth();
+  const { login, userType, loading, isAuthenticated } = useAuth();
   const [formData, setFormData] = useState({
     email: '',
     password: ''
@@ -21,10 +21,10 @@ export default function AdminLoginPage() {
 
   // إعادة توجيه إذا كان المستخدم مسجل دخول بالفعل
   useEffect(() => {
-    if (user && user.userType === 'admin') {
+    if (isAuthenticated && userType === 'admin') {
       setLocation('/admin');
     }
-  }, [user, setLocation]);
+  }, [isAuthenticated, userType, setLocation]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -61,7 +61,9 @@ export default function AdminLoginPage() {
     if (error) setError(''); // مسح الخطأ عند الكتابة
   };
 
-  if (isLoading) {
+  // Hardcoded credentials and quick login removed for security
+
+  if (loading) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-blue-50 via-white to-blue-50">
         <Loader2 className="h-8 w-8 animate-spin text-primary" />
@@ -150,30 +152,35 @@ export default function AdminLoginPage() {
                 </div>
               </div>
 
-              <Button
-                type="submit"
-                className="w-full h-12 bg-gradient-to-r from-blue-500 to-blue-600 hover:from-blue-600 hover:to-blue-700 text-white font-medium rounded-lg shadow-lg hover:shadow-xl transition-all duration-200"
-                disabled={isSubmitting}
-              >
-                {isSubmitting ? (
-                  <>
-                    <Loader2 className="mr-2 h-5 w-5 animate-spin" />
-                    جاري تسجيل الدخول...
-                  </>
-                ) : (
-                  'تسجيل الدخول'
-                )}
-              </Button>
+              <div className="space-y-3">
+                <Button
+                  type="submit"
+                  className="w-full h-12 bg-gradient-to-r from-blue-500 to-blue-600 hover:from-blue-600 hover:to-blue-700 text-white font-medium rounded-lg shadow-lg hover:shadow-xl transition-all duration-200"
+                  disabled={isSubmitting}
+                >
+                  {isSubmitting ? (
+                    <>
+                      <Loader2 className="mr-2 h-5 w-5 animate-spin" />
+                      جاري تسجيل الدخول...
+                    </>
+                  ) : (
+                    'تسجيل الدخول'
+                  )}
+                </Button>
+
+              </div>
             </form>
 
-            {/* Demo Credentials */}
-            <div className="mt-6 p-4 bg-blue-50 rounded-lg border border-blue-200">
-              <p className="text-sm text-blue-800 font-medium mb-2">بيانات تجريبية:</p>
-              <div className="text-xs text-blue-700 space-y-1">
-                <p>البريد الإلكتروني: aymenpro124@gmail.com</p>
-                <p>كلمة المرور: 777146387</p>
+            {/* Demo Credentials - بيئة التطوير فقط */}
+            {(import.meta as any).env.DEV && (
+              <div className="mt-6 p-4 bg-green-50 rounded-lg border border-green-200">
+                <p className="text-sm text-green-800 font-medium mb-2">🔑 بيانات المدير الافتراضية (تطوير):</p>
+                <div className="text-xs text-green-700 space-y-1">
+                  <p>البريد الإلكتروني: admin@alsarie-one.com</p>
+                  <p>كلمة المرور: admin123456</p>
+                </div>
               </div>
-            </div>
+            )}
           </CardContent>
         </Card>
 

@@ -1,12 +1,13 @@
 import { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { Plus, Edit, Trash2, Store, Save, X, Clock, Star, MapPin } from 'lucide-react';
+import { Plus, Edit, Trash2, Store, Save, X, Clock, Star } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Switch } from '@/components/ui/switch';
+import { Checkbox } from '@/components/ui/checkbox';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog';
@@ -30,23 +31,43 @@ export default function AdminRestaurants() {
     minimumOrder: '0',
     isOpen: true,
     categoryId: '',
+    openingTime: '08:00',
+    closingTime: '23:00',
+    workingDays: '0,1,2,3,4,5,6', // Sunday=0, Monday=1, ..., Saturday=6
+    isTemporarilyClosed: false,
+    temporaryCloseReason: '',
+    // الحقول المفقودة من قاعدة البيانات
+    latitude: '',
+    longitude: '',
+    address: '',
+    isFeatured: false,
+    isNew: false,
+    isActive: true,
   });
 
   const { data: restaurants, isLoading: restaurantsLoading } = useQuery<Restaurant[]>({
-    queryKey: ['/api/restaurants'],
+    queryKey: ['/api/admin/restaurants'],
   });
 
   const { data: categories } = useQuery<Category[]>({
-    queryKey: ['/api/categories'],
+    queryKey: ['/api/admin/categories'],
   });
 
   const createRestaurantMutation = useMutation({
     mutationFn: async (data: typeof formData) => {
-      const response = await apiRequest('POST', '/api/restaurants', data);
+      const submitData = {
+        ...data,
+        deliveryFee: parseFloat(data.deliveryFee) || 0,
+        minimumOrder: parseFloat(data.minimumOrder) || 0,
+        // تحويل إحداثيات الموقع للأرقام مع التحقق
+        latitude: data.latitude ? parseFloat(data.latitude) : null,
+        longitude: data.longitude ? parseFloat(data.longitude) : null,
+      };
+      const response = await apiRequest('POST', '/api/admin/restaurants', submitData);
       return response.json();
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['/api/restaurants'] });
+      queryClient.invalidateQueries({ queryKey: ['/api/admin/restaurants'] });
       toast({
         title: "تم إضافة المطعم",
         description: "تم إضافة المطعم الجديد بنجاح",
@@ -58,11 +79,19 @@ export default function AdminRestaurants() {
 
   const updateRestaurantMutation = useMutation({
     mutationFn: async ({ id, data }: { id: string; data: Partial<typeof formData> }) => {
-      const response = await apiRequest('PUT', `/api/restaurants/${id}`, data);
+      const submitData = {
+        ...data,
+        deliveryFee: data.deliveryFee != null ? parseFloat(data.deliveryFee) : undefined,
+        minimumOrder: data.minimumOrder != null ? parseFloat(data.minimumOrder) : undefined,
+        // تحويل إحداثيات الموقع للأرقام مع التحقق - يسمح بالمسح
+        latitude: data.latitude === '' ? null : data.latitude != null ? parseFloat(data.latitude) : undefined,
+        longitude: data.longitude === '' ? null : data.longitude != null ? parseFloat(data.longitude) : undefined,
+      };
+      const response = await apiRequest('PUT', `/api/admin/restaurants/${id}`, submitData);
       return response.json();
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['/api/restaurants'] });
+      queryClient.invalidateQueries({ queryKey: ['/api/admin/restaurants'] });
       toast({
         title: "تم تحديث المطعم",
         description: "تم تحديث بيانات المطعم بنجاح",
@@ -75,11 +104,11 @@ export default function AdminRestaurants() {
 
   const deleteRestaurantMutation = useMutation({
     mutationFn: async (id: string) => {
-      const response = await apiRequest('DELETE', `/api/restaurants/${id}`);
+      const response = await apiRequest('DELETE', `/api/admin/restaurants/${id}`);
       return response.json();
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['/api/restaurants'] });
+      queryClient.invalidateQueries({ queryKey: ['/api/admin/restaurants'] });
       toast({
         title: "تم حذف المطعم",
         description: "تم حذف المطعم بنجاح",
@@ -97,6 +126,18 @@ export default function AdminRestaurants() {
       minimumOrder: '0',
       isOpen: true,
       categoryId: '',
+      openingTime: '08:00',
+      closingTime: '23:00',
+      workingDays: '0,1,2,3,4,5,6',
+      isTemporarilyClosed: false,
+      temporaryCloseReason: '',
+      // الحقول المفقودة من قاعدة البيانات
+      latitude: '',
+      longitude: '',
+      address: '',
+      isFeatured: false,
+      isNew: false,
+      isActive: true,
     });
     setEditingRestaurant(null);
   };
@@ -112,6 +153,18 @@ export default function AdminRestaurants() {
       minimumOrder: restaurant.minimumOrder || '0',
       isOpen: restaurant.isOpen,
       categoryId: restaurant.categoryId || '',
+      openingTime: restaurant.openingTime || '08:00',
+      closingTime: restaurant.closingTime || '23:00',
+      workingDays: restaurant.workingDays || '0,1,2,3,4,5,6',
+      isTemporarilyClosed: restaurant.isTemporarilyClosed || false,
+      temporaryCloseReason: restaurant.temporaryCloseReason || '',
+      // الحقول المفقودة من قاعدة البيانات
+      latitude: restaurant.latitude || '',
+      longitude: restaurant.longitude || '',
+      address: restaurant.address || '',
+      isFeatured: restaurant.isFeatured || false,
+      isNew: restaurant.isNew || false,
+      isActive: restaurant.isActive !== false, // قيمة افتراضية true
     });
     setIsDialogOpen(true);
   };
@@ -119,10 +172,81 @@ export default function AdminRestaurants() {
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     
+    // Basic validation
     if (!formData.name.trim()) {
       toast({
         title: "خطأ",
         description: "يرجى إدخال اسم المطعم",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    if (!formData.deliveryTime.trim()) {
+      toast({
+        title: "خطأ",
+        description: "يرجى إدخال وقت التوصيل",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    // Validate numeric fields
+    const deliveryFee = parseFloat(formData.deliveryFee);
+    const minimumOrder = parseFloat(formData.minimumOrder);
+    
+    if (isNaN(deliveryFee) || deliveryFee < 0) {
+      toast({
+        title: "خطأ",
+        description: "يرجى إدخال رسوم توصيل صحيحة",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    if (isNaN(minimumOrder) || minimumOrder < 0) {
+      toast({
+        title: "خطأ",
+        description: "يرجى إدخال حد أدنى للطلب صحيح",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    // Working days validation
+    const workingDaysArray = formData.workingDays.split(',').filter(Boolean);
+    if (workingDaysArray.length === 0) {
+      toast({
+        title: "خطأ في أيام العمل",
+        description: "يجب اختيار يوم واحد على الأقل للعمل",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    // Time validation
+    if (formData.openingTime && formData.closingTime) {
+      const [openHour, openMin] = formData.openingTime.split(':').map(Number);
+      const [closeHour, closeMin] = formData.closingTime.split(':').map(Number);
+      
+      const openingMinutes = openHour * 60 + openMin;
+      const closingMinutes = closeHour * 60 + closeMin;
+      
+      if (openingMinutes >= closingMinutes) {
+        toast({
+          title: "خطأ في أوقات العمل",
+          description: "وقت الفتح يجب أن يكون قبل وقت الإغلاق",
+          variant: "destructive",
+        });
+        return;
+      }
+    }
+
+    // Temporary closure validation
+    if (formData.isTemporarilyClosed && !formData.temporaryCloseReason.trim()) {
+      toast({
+        title: "خطأ في الإغلاق المؤقت",
+        description: "يرجى إدخال سبب الإغلاق المؤقت",
         variant: "destructive",
       });
       return;
@@ -232,14 +356,42 @@ export default function AdminRestaurants() {
 
               <div>
                 <Label htmlFor="image">رابط الصورة</Label>
-                <Input
-                  id="image"
-                  value={formData.image}
-                  onChange={(e) => setFormData(prev => ({ ...prev, image: e.target.value }))}
-                  placeholder="https://example.com/image.jpg"
-                  required
-                  data-testid="input-restaurant-image"
-                />
+                <div className="flex gap-2">
+                  <Input
+                    id="image"
+                    value={formData.image}
+                    onChange={(e) => setFormData(prev => ({ ...prev, image: e.target.value }))}
+                    placeholder="https://example.com/image.jpg"
+                    required
+                    data-testid="input-restaurant-image"
+                    className="flex-1"
+                  />
+                  <Button
+                    type="button"
+                    variant="outline"
+                    onClick={() => document.getElementById('restaurant-file-upload')?.click()}
+                    data-testid="button-select-image"
+                  >
+                    اختيار صورة
+                  </Button>
+                  <input
+                    id="restaurant-file-upload"
+                    type="file"
+                    accept="image/*"
+                    className="hidden"
+                    onChange={(e) => {
+                      const file = e.target.files?.[0];
+                      if (file) {
+                        const reader = new FileReader();
+                        reader.onload = (event) => {
+                          const result = event.target?.result as string;
+                          setFormData(prev => ({ ...prev, image: result }));
+                        };
+                        reader.readAsDataURL(file);
+                      }
+                    }}
+                  />
+                </div>
               </div>
 
               <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
@@ -290,6 +442,186 @@ export default function AdminRestaurants() {
                   onCheckedChange={(checked) => setFormData(prev => ({ ...prev, isOpen: checked }))}
                   data-testid="switch-restaurant-open"
                 />
+              </div>
+
+              {/* Restaurant Hours Section */}
+              <div className="space-y-4 border-t pt-4">
+                <h3 className="text-lg font-semibold text-foreground">أوقات العمل</h3>
+                
+                {/* Opening and Closing Times */}
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div>
+                    <Label htmlFor="openingTime">وقت الفتح</Label>
+                    <Input
+                      id="openingTime"
+                      type="time"
+                      value={formData.openingTime}
+                      onChange={(e) => setFormData(prev => ({ ...prev, openingTime: e.target.value }))}
+                      data-testid="input-restaurant-opening-time"
+                    />
+                  </div>
+                  <div>
+                    <Label htmlFor="closingTime">وقت الإغلاق</Label>
+                    <Input
+                      id="closingTime"
+                      type="time"
+                      value={formData.closingTime}
+                      onChange={(e) => setFormData(prev => ({ ...prev, closingTime: e.target.value }))}
+                      data-testid="input-restaurant-closing-time"
+                    />
+                  </div>
+                </div>
+
+                {/* Working Days */}
+                <div>
+                  <Label className="text-base font-medium">أيام العمل</Label>
+                  <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mt-2">
+                    {[
+                      { value: '0', label: 'الأحد' },
+                      { value: '1', label: 'الإثنين' },
+                      { value: '2', label: 'الثلاثاء' },
+                      { value: '3', label: 'الأربعاء' },
+                      { value: '4', label: 'الخميس' },
+                      { value: '5', label: 'الجمعة' },
+                      { value: '6', label: 'السبت' },
+                    ].map((day) => {
+                      const workingDaysArray = formData.workingDays.split(',').filter(Boolean);
+                      const isChecked = workingDaysArray.includes(day.value);
+                      
+                      return (
+                        <div key={day.value} className="flex items-center space-x-2 space-x-reverse">
+                          <Checkbox
+                            id={`day-${day.value}`}
+                            checked={isChecked}
+                            onCheckedChange={(checked) => {
+                              const currentDays = formData.workingDays.split(',').filter(Boolean);
+                              let newDays;
+                              if (checked) {
+                                newDays = [...currentDays, day.value].sort((a, b) => parseInt(a) - parseInt(b));
+                              } else {
+                                newDays = currentDays.filter(d => d !== day.value);
+                              }
+                              setFormData(prev => ({ ...prev, workingDays: newDays.join(',') }));
+                            }}
+                            data-testid={`checkbox-working-day-${day.value}`}
+                          />
+                          <Label
+                            htmlFor={`day-${day.value}`}
+                            className="text-sm font-normal cursor-pointer"
+                          >
+                            {day.label}
+                          </Label>
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
+
+                {/* Temporary Closure */}
+                <div className="space-y-3">
+                  <div className="flex items-center justify-between">
+                    <Label htmlFor="isTemporarilyClosed">إغلاق مؤقت</Label>
+                    <Switch
+                      id="isTemporarilyClosed"
+                      checked={formData.isTemporarilyClosed}
+                      onCheckedChange={(checked) => setFormData(prev => ({ ...prev, isTemporarilyClosed: checked }))}
+                      data-testid="switch-restaurant-temporarily-closed"
+                    />
+                  </div>
+                  
+                  {formData.isTemporarilyClosed && (
+                    <div>
+                      <Label htmlFor="temporaryCloseReason">سبب الإغلاق المؤقت</Label>
+                      <Textarea
+                        id="temporaryCloseReason"
+                        value={formData.temporaryCloseReason}
+                        onChange={(e) => setFormData(prev => ({ ...prev, temporaryCloseReason: e.target.value }))}
+                        placeholder="مثال: أعمال صيانة، إجازة، ظروف خاصة..."
+                        rows={2}
+                        data-testid="input-restaurant-temporary-close-reason"
+                      />
+                    </div>
+                  )}
+                </div>
+              </div>
+
+              {/* Location and Status Section - الحقول المفقودة من قاعدة البيانات */}
+              <div className="space-y-4 border-t pt-4">
+                <h3 className="text-lg font-semibold text-foreground">الموقع والإعدادات</h3>
+                
+                {/* Address */}
+                <div>
+                  <Label htmlFor="address">العنوان</Label>
+                  <Textarea
+                    id="address"
+                    value={formData.address}
+                    onChange={(e) => setFormData(prev => ({ ...prev, address: e.target.value }))}
+                    placeholder="عنوان المطعم الكامل"
+                    rows={2}
+                    data-testid="input-restaurant-address"
+                  />
+                </div>
+
+                {/* Location Coordinates */}
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div>
+                    <Label htmlFor="latitude">خط العرض (Latitude)</Label>
+                    <Input
+                      id="latitude"
+                      type="number"
+                      step="any"
+                      value={formData.latitude}
+                      onChange={(e) => setFormData(prev => ({ ...prev, latitude: e.target.value }))}
+                      placeholder="24.7136"
+                      data-testid="input-restaurant-latitude"
+                    />
+                  </div>
+                  <div>
+                    <Label htmlFor="longitude">خط الطول (Longitude)</Label>
+                    <Input
+                      id="longitude"
+                      type="number"
+                      step="any"
+                      value={formData.longitude}
+                      onChange={(e) => setFormData(prev => ({ ...prev, longitude: e.target.value }))}
+                      placeholder="46.6753"
+                      data-testid="input-restaurant-longitude"
+                    />
+                  </div>
+                </div>
+
+                {/* Status Flags */}
+                <div className="space-y-3">
+                  <div className="flex items-center justify-between">
+                    <Label htmlFor="isActive">المطعم مفعل</Label>
+                    <Switch
+                      id="isActive"
+                      checked={formData.isActive}
+                      onCheckedChange={(checked) => setFormData(prev => ({ ...prev, isActive: checked }))}
+                      data-testid="switch-restaurant-active"
+                    />
+                  </div>
+                  
+                  <div className="flex items-center justify-between">
+                    <Label htmlFor="isFeatured">مطعم مميز</Label>
+                    <Switch
+                      id="isFeatured"
+                      checked={formData.isFeatured}
+                      onCheckedChange={(checked) => setFormData(prev => ({ ...prev, isFeatured: checked }))}
+                      data-testid="switch-restaurant-featured"
+                    />
+                  </div>
+                  
+                  <div className="flex items-center justify-between">
+                    <Label htmlFor="isNew">مطعم جديد</Label>
+                    <Switch
+                      id="isNew"
+                      checked={formData.isNew}
+                      onCheckedChange={(checked) => setFormData(prev => ({ ...prev, isNew: checked }))}
+                      data-testid="switch-restaurant-new"
+                    />
+                  </div>
+                </div>
               </div>
 
               <div className="flex gap-2 pt-4">
