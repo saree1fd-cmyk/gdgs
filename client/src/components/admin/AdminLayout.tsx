@@ -1,6 +1,5 @@
 import React, { useState } from 'react';
 import { useLocation } from 'wouter';
-import { useAuth } from '@/context/AuthContext';
 import { Button } from '@/components/ui/button';
 import { Sheet, SheetContent, SheetTrigger } from '@/components/ui/sheet';
 import { 
@@ -14,7 +13,9 @@ import {
   LogOut,
   Package,
   Users,
-  Bell
+  Bell,
+  User,
+  Tag
 } from 'lucide-react';
 
 interface AdminLayoutProps {
@@ -23,7 +24,6 @@ interface AdminLayoutProps {
 
 export const AdminLayout: React.FC<AdminLayoutProps> = ({ children }) => {
   const [, setLocation] = useLocation();
-  const { user, logout } = useAuth();
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
 
   const menuItems = [
@@ -46,6 +46,12 @@ export const AdminLayout: React.FC<AdminLayoutProps> = ({ children }) => {
       description: 'إدارة المطاعم والمتاجر'
     },
     { 
+      icon: Tag, 
+      label: 'التصنيفات', 
+      path: '/admin/categories',
+      description: 'إدارة فئات المطاعم'
+    },
+    { 
       icon: Package, 
       label: 'قوائم الطعام', 
       path: '/admin/menu-items',
@@ -65,15 +71,21 @@ export const AdminLayout: React.FC<AdminLayoutProps> = ({ children }) => {
     },
     { 
       icon: Users, 
-      label: 'العملاء', 
-      path: '/admin/customers',
-      description: 'إدارة العملاء'
+      label: 'المستخدمين', 
+      path: '/admin/users',
+      description: 'إدارة المستخدمين والصلاحيات'
+    },
+    { 
+      icon: User, 
+      label: 'الملف الشخصي', 
+      path: '/admin/profile',
+      description: 'إدارة معلومات الحساب'
     },
     { 
       icon: Settings, 
-      label: 'الإعدادات', 
-      path: '/admin/settings',
-      description: 'إعدادات النظام'
+      label: 'إعدادات الواجهة', 
+      path: '/admin/ui-settings',
+      description: 'إدارة إعدادات التطبيق والواجهة'
     },
   ];
 
@@ -83,8 +95,7 @@ export const AdminLayout: React.FC<AdminLayoutProps> = ({ children }) => {
   };
 
   const handleLogout = () => {
-    logout();
-    setLocation('/admin-login');
+    window.location.href = '/';
   };
 
   const currentPath = window.location.pathname;
@@ -108,13 +119,11 @@ export const AdminLayout: React.FC<AdminLayoutProps> = ({ children }) => {
       <div className="p-4 border-b bg-gray-50">
         <div className="flex items-center gap-3">
           <div className="w-8 h-8 bg-blue-500 rounded-full flex items-center justify-center">
-            <span className="text-white text-sm font-medium">
-              {user?.name?.charAt(0) || 'A'}
-            </span>
+            <span className="text-white text-sm font-medium">A</span>
           </div>
           <div>
-            <p className="font-medium text-gray-900">{user?.name}</p>
-            <p className="text-xs text-gray-500">مدير النظام</p>
+            <p className="font-medium text-gray-900">مدير النظام</p>
+            <p className="text-xs text-gray-500">لوحة التحكم</p>
           </div>
         </div>
       </div>
