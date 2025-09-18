@@ -2,11 +2,10 @@ import { pgTable, text, uuid, timestamp, boolean, integer, decimal, varchar } fr
 import { createInsertSchema, createSelectSchema } from "drizzle-zod";
 import { z } from "zod";
 
-// Users table (customers)
+// Users table (customers) - بدون مصادقة
 export const users = pgTable("users", {
   id: uuid("id").primaryKey().defaultRandom(),
   username: varchar("username", { length: 50 }).notNull().unique(),
-  password: text("password").notNull(),
   name: text("name").notNull(),
   phone: varchar("phone", { length: 20 }),
   email: varchar("email", { length: 100 }),
@@ -61,7 +60,15 @@ export const restaurants = pgTable("restaurants", {
   workingDays: varchar("working_days", { length: 50 }).default("0,1,2,3,4,5,6"), // تمت الإضافة
   isTemporarilyClosed: boolean("is_temporarily_closed").default(false), // تمت الإضافة
   temporaryCloseReason: text("temporary_close_reason"), // تمت الإضافة
+  // إضافة الحقول الجديدة للموقع والمطاعم الجديدة والمفضلة
+  latitude: decimal("latitude", { precision: 10, scale: 8 }),
+  longitude: decimal("longitude", { precision: 11, scale: 8 }),
+  address: text("address"), // عنوان المطعم
+  isFeatured: boolean("is_featured").default(false), // للمطاعم المفضلة
+  isNew: boolean("is_new").default(false), // للمطاعم الجديدة
+  isActive: boolean("is_active").default(true).notNull(), // حالة النشاط
   createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
 });
 
 // Menu items table
@@ -78,12 +85,14 @@ export const menuItems = pgTable("menu_items", {
   restaurantId: uuid("restaurant_id").references(() => restaurants.id),
 });
 
-// Drivers table
+// Drivers table - بدون مصادقة
 export const drivers = pgTable("drivers", {
   id: uuid("id").primaryKey().defaultRandom(),
   name: varchar("name", { length: 100 }).notNull(),
+  username: varchar("username", { length: 50 }).unique(),
+  email: varchar("email", { length: 100 }).unique(),
   phone: varchar("phone", { length: 20 }).notNull().unique(),
-  password: text("password").notNull(),
+  userType: varchar("user_type", { length: 50 }).default("driver").notNull(),
   isAvailable: boolean("is_available").default(true).notNull(),
   isActive: boolean("is_active").default(true).notNull(),
   currentLocation: varchar("current_location", { length: 200 }),
@@ -130,27 +139,19 @@ export const specialOffers = pgTable("special_offers", {
   createdAt: timestamp("created_at").defaultNow().notNull(),
 });
 
-// Admin users table
+// Admin users table - بدون مصادقة
 export const adminUsers = pgTable("admin_users", {
   id: uuid("id").primaryKey().defaultRandom(),
   name: varchar("name", { length: 100 }).notNull(),
   username: varchar("username", { length: 50 }).unique(),
   email: varchar("email", { length: 100 }).notNull().unique(),
-  password: text("password").notNull(),
+  phone: varchar("phone", { length: 20 }),
   userType: varchar("user_type", { length: 50 }).default("admin").notNull(),
   isActive: boolean("is_active").default(true).notNull(),
   createdAt: timestamp("created_at").defaultNow().notNull(),
 });
 
-// Admin sessions table
-export const adminSessions = pgTable("admin_sessions", {
-  id: uuid("id").primaryKey().defaultRandom(),
-  adminId: uuid("admin_id").references(() => adminUsers.id).notNull(),
-  token: text("token").notNull().unique(),
-  userType: varchar("user_type", { length: 50 }).notNull(),
-  expiresAt: timestamp("expires_at").notNull(),
-  createdAt: timestamp("created_at").defaultNow().notNull(),
-});
+// تم حذف جدول admin_sessions - لا حاجة له بعد إزالة نظام المصادقة
 
 // System settings table
 export const systemSettings = pgTable("system_settings", {
@@ -213,10 +214,7 @@ export const selectAdminUserSchema = createSelectSchema(adminUsers);
 export type AdminUser = z.infer<typeof selectAdminUserSchema>;
 export type InsertAdminUser = z.infer<typeof insertAdminUserSchema>;
 
-export const insertAdminSessionSchema = createInsertSchema(adminSessions);
-export const selectAdminSessionSchema = createSelectSchema(adminSessions);
-export type AdminSession = z.infer<typeof selectAdminSessionSchema>;
-export type InsertAdminSession = z.infer<typeof insertAdminSessionSchema>;
+// تم حذف AdminSession schemas - لا حاجة لها بعد إزالة نظام المصادقة
 
 // Restaurant sections table
 export const restaurantSections = pgTable("restaurant_sections", {
@@ -313,6 +311,25 @@ export const restaurantEarnings = pgTable("restaurant_earnings", {
   updatedAt: timestamp("updated_at").defaultNow().notNull(),
 });
 
+// Cart table - جدول السلة
+export const cart = pgTable("cart", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  userId: uuid("user_id").references(() => users.id).notNull(),
+  menuItemId: uuid("menu_item_id").references(() => menuItems.id).notNull(),
+  restaurantId: uuid("restaurant_id").references(() => restaurants.id).notNull(),
+  quantity: integer("quantity").default(1).notNull(),
+  specialInstructions: text("special_instructions"),
+  addedAt: timestamp("added_at").defaultNow().notNull(),
+});
+
+// Favorites table - جدول المفضلة
+export const favorites = pgTable("favorites", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  userId: uuid("user_id").references(() => users.id).notNull(),
+  restaurantId: uuid("restaurant_id").references(() => restaurants.id).notNull(),
+  addedAt: timestamp("added_at").defaultNow().notNull(),
+});
+
 export const insertUiSettingsSchema = createInsertSchema(uiSettings);
 export const selectUiSettingsSchema = createSelectSchema(uiSettings);
 export type UiSettings = z.infer<typeof selectUiSettingsSchema>;
@@ -352,3 +369,15 @@ export const insertRestaurantEarningsSchema = createInsertSchema(restaurantEarni
 export const selectRestaurantEarningsSchema = createSelectSchema(restaurantEarnings);
 export type RestaurantEarnings = z.infer<typeof selectRestaurantEarningsSchema>;
 export type InsertRestaurantEarnings = z.infer<typeof insertRestaurantEarningsSchema>;
+
+// Cart schemas - مخططات السلة
+export const insertCartSchema = createInsertSchema(cart);
+export const selectCartSchema = createSelectSchema(cart);
+export type Cart = z.infer<typeof selectCartSchema>;
+export type InsertCart = z.infer<typeof insertCartSchema>;
+
+// Favorites schemas - مخططات المفضلة
+export const insertFavoritesSchema = createInsertSchema(favorites);
+export const selectFavoritesSchema = createSelectSchema(favorites);
+export type Favorites = z.infer<typeof selectFavoritesSchema>;
+export type InsertFavorites = z.infer<typeof insertFavoritesSchema>;

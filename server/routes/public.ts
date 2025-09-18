@@ -1,5 +1,5 @@
 import express from "express";
-import { dbStorage } from "../db.js";
+import { storage } from "../storage.js";
 import * as schema from "../../shared/schema.js";
 import { eq, desc, and, or, like, sql } from "drizzle-orm";
 
@@ -8,7 +8,7 @@ const router = express.Router();
 // جلب التصنيفات
 router.get("/categories", async (req, res) => {
   try {
-    const categories = await dbStorage.getCategories();
+    const categories = await storage.getCategories();
     res.json(categories);
   } catch (error) {
     console.error("خطأ في جلب التصنيفات:", error);
@@ -23,11 +23,11 @@ router.get("/restaurants", async (req, res) => {
     
     let restaurants;
     if (search) {
-      restaurants = await dbStorage.searchRestaurants(`%${search}%`, categoryId as string);
+      restaurants = await storage.searchRestaurants(`%${search}%`, categoryId as string);
     } else if (categoryId && categoryId !== 'all') {
-      restaurants = await dbStorage.getRestaurantsByCategory(categoryId as string);
+      restaurants = await storage.getRestaurantsByCategory(categoryId as string);
     } else {
-      restaurants = await dbStorage.getRestaurants();
+      restaurants = await storage.getRestaurants();
     }
 
     res.json(restaurants);
@@ -42,7 +42,7 @@ router.get("/restaurants/:id", async (req, res) => {
   try {
     const { id } = req.params;
     
-    const restaurant = await dbStorage.getRestaurant(id);
+    const restaurant = await storage.getRestaurant(id);
 
     if (!restaurant) {
       return res.status(404).json({ message: "المطعم غير موجود" });
@@ -61,14 +61,14 @@ router.get("/restaurants/:id/menu", async (req, res) => {
     const { id } = req.params;
     
     // التحقق من وجود المطعم
-    const restaurant = await dbStorage.getRestaurant(id);
+    const restaurant = await storage.getRestaurant(id);
 
     if (!restaurant) {
       return res.status(404).json({ message: "المطعم غير موجود" });
     }
 
     // جلب عناصر القائمة
-    const menuItems = await dbStorage.getMenuItems(id);
+    const menuItems = await storage.getMenuItems(id);
 
     res.json({
       restaurant,
@@ -84,23 +84,22 @@ router.get("/restaurants/:id/menu", async (req, res) => {
 // جلب العروض الخاصة
 router.get("/special-offers", async (req, res) => {
   try {
-    const { restaurantId, categoryId } = req.query;
+    console.log("🔍 Storage type:", storage.constructor.name);
     
-    let whereConditions = [eq(schema.specialOffers.isActive, true)];
+    // Disable caching to see changes
+    res.set('Cache-Control', 'no-store');
     
-    if (restaurantId) {
-      whereConditions.push(eq(schema.specialOffers.restaurantId, restaurantId as string));
+    const { active } = req.query;
+    let offers;
+    
+    // Default to active offers for homepage
+    if (active === 'false') {
+      offers = await storage.getSpecialOffers();
+    } else {
+      offers = await storage.getActiveSpecialOffers();
     }
     
-    if (categoryId) {
-      whereConditions.push(eq(schema.specialOffers.categoryId, categoryId as string));
-    }
-
-    const offers = await db.query.specialOffers.findMany({
-      where: and(...whereConditions),
-      orderBy: [desc(schema.specialOffers.createdAt)]
-    });
-
+    console.log("📊 Found offers:", offers.length, offers);
     res.json(offers);
   } catch (error) {
     console.error("خطأ في جلب العروض الخاصة:", error);
@@ -206,15 +205,15 @@ router.get("/search", async (req, res) => {
     let results: any = { restaurants: [], categories: [], menuItems: [] };
 
     if (type === 'all' || type === 'restaurants') {
-      results.restaurants = await dbStorage.searchRestaurants(searchTerm);
+      results.restaurants = await storage.searchRestaurants(searchTerm);
     }
 
     if (type === 'all' || type === 'categories') {
-      results.categories = await dbStorage.searchCategories(searchTerm);
+      results.categories = await storage.searchCategories(searchTerm);
     }
 
     if (type === 'all' || type === 'menu') {
-      results.menuItems = await dbStorage.searchMenuItems(searchTerm);
+      results.menuItems = await storage.searchMenuItems(searchTerm);
     }
 
     res.json(results);
