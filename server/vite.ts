@@ -1,4 +1,6 @@
+// server/vite.ts
 import { createServer } from "vite";
+
 import express, { type Express } from "express";
 import fs from "fs";
 import path from "path";
@@ -36,7 +38,7 @@ export async function setupVite(app: Express, server: Server) {
   });
 
   app.use(viteServer.middlewares);
-  app.use("*", async (req, res, next) => {
+  app.use("*", async (req: any, res: any, next: any) => {
     const url = req.originalUrl;
     try {
       const clientTemplate = path.resolve(
