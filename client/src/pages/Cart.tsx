@@ -47,10 +47,10 @@ export default function Cart() {
       const response = await apiRequest('POST', '/api/orders', orderData);
       return response.json();
     },
-    onSuccess: (data) => {
+    onSuccess: () => {
       toast({
         title: "تم تأكيد طلبك بنجاح!",
-        description: `رقم الطلب: ${data.order?.orderNumber || data.orderNumber}`,
+        description: "سيتم التواصل معك قريباً",
       });
       clearCart();
       setLocation('/');
@@ -92,8 +92,7 @@ export default function Cart() {
       totalAmount: total.toString(),
       restaurantId: items[0]?.restaurantId || '',
       status: 'pending',
-      customerLocationLat: orderForm.locationData?.lat?.toString(),
-      customerLocationLng: orderForm.locationData?.lng?.toString(),
+      orderNumber: `ORD${Date.now()}`,
     };
 
     placeOrderMutation.mutate(orderData);
