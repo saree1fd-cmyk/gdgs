@@ -72,7 +72,13 @@ export default function Layout({ children }: LayoutProps) {
   ];
 
   // Dynamic sidebar menu items based on visibility settings
-  const baseSidebarMenuItems = [
+  const baseSidebarMenuItems: Array<{
+    icon: React.ComponentType<any>;
+    label: string;
+    path: string;
+    testId: string;
+    className?: string;
+  }> = [
     { icon: User, label: 'الملف الشخصي', path: '/profile', testId: 'sidebar-profile' },
     ...(showOrdersPage ? [{ icon: Receipt, label: 'طلباتي', path: '/orders', testId: 'sidebar-orders' }] : []),
     { icon: MapPin, label: 'العناوين المحفوظة', path: '/addresses', testId: 'sidebar-addresses' },

@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import { Search, X } from 'lucide-react';
 import { searchService } from '../services/searchService';
 import type { Restaurant, Category, MenuItem } from '../../../shared/schema.js';

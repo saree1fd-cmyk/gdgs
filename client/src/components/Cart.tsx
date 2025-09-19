@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import { useState } from 'react';
 import { Minus, Plus, Trash2, ShoppingBag, X } from 'lucide-react';
 import { useCart } from '../contexts/CartContext';
 import { MapPicker } from './MapPicker';

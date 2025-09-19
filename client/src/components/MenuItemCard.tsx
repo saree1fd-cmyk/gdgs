@@ -9,9 +9,17 @@ interface MenuItemCardProps {
   item: MenuItem;
   disabled?: boolean;
   disabledMessage?: string;
+  restaurantId?: string;
+  restaurantName?: string;
 }
 
-export default function MenuItemCard({ item, disabled = false, disabledMessage }: MenuItemCardProps) {
+export default function MenuItemCard({ 
+  item, 
+  disabled = false, 
+  disabledMessage, 
+  restaurantId = 'unknown', 
+  restaurantName = 'مطعم غير محدد' 
+}: MenuItemCardProps) {
   const { addItem } = useCart();
   const { toast } = useToast();
 
@@ -27,11 +35,10 @@ export default function MenuItemCard({ item, disabled = false, disabledMessage }
       return;
     }
     
-    // Need restaurant context - this will need to be passed as props
-    addItem(item, 'unknown', 'مطعم غير محدد');
+    addItem(item, restaurantId, restaurantName);
     toast({
       title: "تمت الإضافة للسلة",
-      description: `تم إضافة ${item.name} للسلة`,
+      description: `تم إضافة ${item.name} للسلة من ${restaurantName}`,
     });
   };
 
