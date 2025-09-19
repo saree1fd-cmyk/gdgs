@@ -111,15 +111,15 @@ export default function Layout({ children }: LayoutProps) {
   // Complete sidebar menu items
   const sidebarMenuItems = [...baseSidebarMenuItems, ...adminDeliveryItems];
 
-  // وظيفة التعامل مع النقر على أيقونة الملف الشخصي - الانتقال إلى تطبيق التوصيل الحقيقي
+  // وظيفة التعامل مع النقر على أيقونة الملف الشخصي - الانتقال إلى صفحة الملف الشخصي
   const handleProfileIconClick = () => {
     toast({
-      title: "الانتقال إلى تطبيق التوصيل",
-      description: "مرحباً بك في تطبيق السائق",
+      title: "الملف الشخصي",
+      description: "مرحباً بك في صفحة الملف الشخصي",
     });
     
-    // الانتقال المباشر إلى تطبيق التوصيل الحقيقي
-    window.location.href = '/driver';
+    // الانتقال إلى صفحة الملف الشخصي العادية
+    setLocation('/profile');
   };
 
 
@@ -185,7 +185,7 @@ export default function Layout({ children }: LayoutProps) {
               size="icon"
               onClick={handleProfileIconClick}
               className="relative text-white hover:bg-white/20"
-              title="الانتقال إلى تطبيق التوصيل"
+              title="الملف الشخصي"
               data-testid="button-profile"
             >
               <User className="h-6 w-6" />
