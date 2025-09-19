@@ -113,7 +113,7 @@ router.post("/", async (req, res) => {
         orderId: order.id,
         status: 'pending',
         message: 'تم استلام الطلب وجاري المراجعة',
-        createdBy: 'system',
+        createdBy: null, // NULL للعمليات التي يقوم بها النظام
         createdByType: 'system'
       });
     } catch (notificationError) {
@@ -266,7 +266,7 @@ router.patch("/:orderId/status", async (req, res) => {
         orderId,
         status,
         message: statusMessage,
-        createdBy: updatedBy || 'system',
+        createdBy: updatedBy || null, // NULL للعمليات التي يقوم بها النظام
         createdByType: updatedByType || 'system'
       });
 
@@ -306,7 +306,7 @@ router.patch("/:orderId/cancel", async (req, res) => {
         orderId,
         status: 'cancelled',
         message: reason || 'تم إلغاء الطلب',
-        createdBy: cancelledBy || 'system',
+        createdBy: cancelledBy || null, // NULL للعمليات التي يقوم بها النظام
         createdByType: 'system'
       });
 
