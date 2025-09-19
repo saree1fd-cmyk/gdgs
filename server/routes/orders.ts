@@ -29,6 +29,27 @@ router.post("/", async (req, res) => {
       });
     }
 
+    // التحقق من صحة معرف المطعم
+    const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+    if (!uuidRegex.test(restaurantId)) {
+      return res.status(400).json({ 
+        error: "معرف المطعم غير صحيح", 
+        message: "Invalid restaurant ID format. Must be a valid UUID.",
+        restaurantId 
+      });
+    }
+
+    // التحقق من وجود المطعم
+    const restaurants = await storage.getRestaurants();
+    const restaurant = restaurants.find(r => r.id === restaurantId);
+    if (!restaurant) {
+      return res.status(400).json({ 
+        error: "المطعم المحدد غير موجود", 
+        message: "Restaurant not found",
+        restaurantId 
+      });
+    }
+
     // إنشاء رقم طلب فريد
     const orderNumber = `ORD-${Date.now()}`;
 
@@ -54,7 +75,47 @@ router.post("/", async (req, res) => {
 
     const order = await storage.createOrder(orderData);
 
-    // تم إنشاء الطلب بنجاح
+    // إنشاء إشعار للمطعم والسائقين
+    try {
+      await storage.createNotification({
+        type: 'new_order',
+        title: 'طلب جديد',
+        message: `طلب جديد رقم ${orderNumber} من ${customerName}`,
+        recipientType: 'restaurant',
+        recipientId: restaurantId,
+        orderId: order.id
+      });
+      
+      await storage.createNotification({
+        type: 'new_order',
+        title: 'طلب جديد متاح',
+        message: `طلب جديد متاح للتوصيل من ${restaurant.name}`,
+        recipientType: 'driver',
+        recipientId: null, // للجميع
+        orderId: order.id
+      });
+      
+      await storage.createNotification({
+        type: 'new_order',
+        title: 'طلب جديد',
+        message: `طلب جديد رقم ${orderNumber} تم استلامه`,
+        recipientType: 'admin',
+        recipientId: null,
+        orderId: order.id
+      });
+
+      // إنشاء تتبع للطلب
+      await storage.createOrderTracking({
+        orderId: order.id,
+        status: 'pending',
+        message: 'تم استلام الطلب وجاري المراجعة',
+        createdBy: 'system',
+        createdByType: 'system'
+      });
+    } catch (notificationError) {
+      console.error('Error creating notifications:', notificationError);
+      // لا نوقف العملية إذا فشل في إنشاء الإشعارات
+    }
 
     res.status(201).json({
       success: true,
@@ -168,6 +229,58 @@ router.patch("/:orderId/status", async (req, res) => {
     const orders = await storage.getOrders();
     const order = orders.find(o => o.id === orderId);
 
+    // إنشاء تتبع للطلب
+    let statusMessage = '';
+    switch (status) {
+      case 'confirmed':
+        statusMessage = 'تم تأكيد الطلب وجاري التحضير';
+        break;
+      case 'preparing':
+        statusMessage = 'جاري تحضير الطلب';
+        break;
+      case 'ready':
+        statusMessage = 'الطلب جاهز وجاري البحث عن موصل';
+        break;
+      case 'picked_up':
+        statusMessage = 'تم استلام الطلب من قبل الموصل';
+        break;
+      case 'on_way':
+        statusMessage = 'الموصل في الطريق إليك';
+        break;
+      case 'delivered':
+        statusMessage = 'تم تسليم الطلب بنجاح';
+        break;
+      case 'cancelled':
+        statusMessage = 'تم إلغاء الطلب';
+        break;
+      default:
+        statusMessage = `تم تحديث حالة الطلب إلى ${status}`;
+    }
+
+    try {
+      await storage.createOrderTracking({
+        orderId,
+        status,
+        message: statusMessage,
+        createdBy: updatedBy || 'system',
+        createdByType: updatedByType || 'system'
+      });
+
+      // إرسال إشعار للعميل
+      if (order) {
+        await storage.createNotification({
+          type: 'order_status',
+          title: 'تحديث حالة الطلب',
+          message: `طلبك رقم ${order.orderNumber}: ${statusMessage}`,
+          recipientType: 'customer',
+          recipientId: order.customerId || order.customerPhone,
+          orderId
+        });
+      }
+    } catch (trackingError) {
+      console.error('Error creating tracking:', trackingError);
+    }
+
     res.json({ success: true, status });
   } catch (error) {
     console.error("Update order status error:", error);
@@ -182,6 +295,33 @@ router.patch("/:orderId/cancel", async (req, res) => {
     const { reason, cancelledBy } = req.body;
 
     await storage.updateOrder(orderId, { status: 'cancelled' });
+
+    // إنشاء تتبع للطلب
+    try {
+      await storage.createOrderTracking({
+        orderId,
+        status: 'cancelled',
+        message: reason || 'تم إلغاء الطلب',
+        createdBy: cancelledBy || 'system',
+        createdByType: 'system'
+      });
+
+      // إشعار العميل
+      const orders = await storage.getOrders();
+      const order = orders.find(o => o.id === orderId);
+      if (order) {
+        await storage.createNotification({
+          type: 'order_cancelled',
+          title: 'تم إلغاء الطلب',
+          message: `تم إلغاء طلبك رقم ${order.orderNumber}${reason ? ': ' + reason : ''}`,
+          recipientType: 'customer',
+          recipientId: order.customerId || order.customerPhone,
+          orderId
+        });
+      }
+    } catch (trackingError) {
+      console.error('Error creating tracking:', trackingError);
+    }
 
     res.json({ success: true, status: 'cancelled' });
   } catch (error) {

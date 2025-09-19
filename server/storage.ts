@@ -113,6 +113,10 @@ export interface IStorage {
   getNotifications(recipientId?: string, type?: string): Promise<Notification[]>;
   createNotification(notification: InsertNotification): Promise<Notification>;
 
+  // Order tracking methods
+  createOrderTracking(tracking: {orderId: string; status: string; message: string; createdBy: string; createdByType: string}): Promise<{id: string; orderId: string; status: string; message: string; createdBy: string; createdByType: string; createdAt: Date}>;
+  getOrderTracking(orderId: string): Promise<{id: string; orderId: string; status: string; message: string; createdBy: string; createdByType: string; createdAt: Date}[]>;
+
   // Search methods
   searchCategories(query: string): Promise<Category[]>;
   searchMenuItemsAdvanced(query: string, filters?: any): Promise<MenuItem[]>;
@@ -134,6 +138,7 @@ export class MemStorage implements IStorage {
   private adminUsers: Map<string, AdminUser>;
   // تم حذف adminSessions - لا حاجة لها بعد إزالة نظام المصادقة
   private notifications: Map<string, Notification>;
+  private orderTracking: Map<string, {id: string; orderId: string; status: string; message: string; createdBy: string; createdByType: string; createdAt: Date}>;
 
   // Add db property for compatibility with routes that access it directly
   get db() {
@@ -156,6 +161,7 @@ export class MemStorage implements IStorage {
     this.adminUsers = new Map();
     // تم حذف adminSessions من المنشئ
     this.notifications = new Map();
+    this.orderTracking = new Map();
     
     this.initializeData();
   }
@@ -1062,6 +1068,24 @@ async updateRestaurant(id: string, restaurant: Partial<InsertRestaurant>): Promi
     }
     
     return items;
+  }
+
+  // Order tracking methods
+  async createOrderTracking(tracking: {orderId: string; status: string; message: string; createdBy: string; createdByType: string}) {
+    const id = randomUUID();
+    const orderTracking = {
+      ...tracking,
+      id,
+      createdAt: new Date()
+    };
+    this.orderTracking.set(id, orderTracking);
+    return orderTracking;
+  }
+
+  async getOrderTracking(orderId: string) {
+    return Array.from(this.orderTracking.values())
+      .filter(tracking => tracking.orderId === orderId)
+      .sort((a, b) => a.createdAt.getTime() - b.createdAt.getTime());
   }
 }
 
