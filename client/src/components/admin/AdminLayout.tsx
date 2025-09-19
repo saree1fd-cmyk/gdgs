@@ -8,6 +8,7 @@ import {
   ShoppingBag, 
   Truck, 
   Percent, 
+  Settings, 
   Menu,
   LogOut,
   Package,
@@ -79,6 +80,12 @@ export const AdminLayout: React.FC<AdminLayoutProps> = ({ children }) => {
       label: 'الملف الشخصي', 
       path: '/admin/profile',
       description: 'إدارة معلومات الحساب'
+    },
+    { 
+      icon: Settings, 
+      label: 'إعدادات الواجهة', 
+      path: '/admin/ui-settings',
+      description: 'إدارة إعدادات التطبيق والواجهة'
     },
   ];
 
