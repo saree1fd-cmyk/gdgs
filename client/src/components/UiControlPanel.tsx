@@ -5,7 +5,7 @@ import { useUiSettings } from '@/context/UiSettingsContext';
 import { Settings, Eye, Palette, Smartphone, UserCog } from 'lucide-react';
 
 export function UiControlPanel() {
-  const { settings, loading, updateSetting, isFeatureEnabled } = useUiSettings();
+  const { loading, updateSetting, isFeatureEnabled } = useUiSettings();
 
   if (loading) {
     return (
