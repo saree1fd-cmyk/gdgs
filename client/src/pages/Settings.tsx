@@ -10,6 +10,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { useTheme } from '../context/ThemeContext';
 import { useToast } from '@/hooks/use-toast';
 import { UiControlPanel } from '@/components/UiControlPanel';
+import { PermissionsManager } from '@/components/PermissionsManager';
 
 interface SettingItem {
   key: string;
@@ -201,10 +202,14 @@ export default function Settings() {
 
       <section className="p-4">
         <Tabs defaultValue="general" className="w-full">
-          <TabsList className="grid w-full grid-cols-2">
+          <TabsList className="grid w-full grid-cols-3">
             <TabsTrigger value="general" className="flex items-center gap-2">
               <SettingsIcon className="h-4 w-4" />
               إعدادات عامة
+            </TabsTrigger>
+            <TabsTrigger value="permissions" className="flex items-center gap-2">
+              <Lock className="h-4 w-4" />
+              الصلاحيات
             </TabsTrigger>
             <TabsTrigger value="ui-control" className="flex items-center gap-2">
               <Globe className="h-4 w-4" />
@@ -329,6 +334,17 @@ export default function Settings() {
             >
               تسجيل الخروج
             </Button>
+          </TabsContent>
+          
+          <TabsContent value="permissions" className="mt-6">
+            <PermissionsManager onPermissionUpdate={(permission, granted) => {
+              console.log(`Permission ${permission} ${granted ? 'granted' : 'denied'}`);
+              toast({
+                title: granted ? 'تم منح الإذن' : 'تم رفض الإذن',
+                description: `إذن ${permission} ${granted ? 'مُمنوح' : 'مرفوض'}`,
+                variant: granted ? 'default' : 'destructive',
+              });
+            }} />
           </TabsContent>
           
           <TabsContent value="ui-control" className="mt-6">

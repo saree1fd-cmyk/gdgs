@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { useLocation } from 'wouter';
 import { useMutation } from '@tanstack/react-query';
 import { ArrowRight, Trash2, MapPin, Calendar, Clock, DollarSign, Plus, Minus, ShoppingCart } from 'lucide-react';
+import { LocationPicker, LocationData } from '@/components/LocationPicker';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
@@ -29,7 +30,17 @@ export default function Cart() {
     deliveryTime: 'now', // 'now' or 'later'
     deliveryDate: '',
     deliveryTimeSlot: '',
+    locationData: null as LocationData | null,
   });
+
+  // Handle location selection from LocationPicker
+  const handleLocationSelect = (location: LocationData) => {
+    setOrderForm(prev => ({
+      ...prev,
+      deliveryAddress: location.address,
+      locationData: location,
+    }));
+  };
 
   const placeOrderMutation = useMutation({
     mutationFn: async (orderData: InsertOrder) => {
@@ -209,20 +220,50 @@ export default function Cart() {
           </CardContent>
         </Card>
 
-        {/* Address Section */}
+        {/* Address Section with Location Picker */}
         <Card>
           <CardContent className="p-4">
-            <div className="flex items-center gap-2 mb-3">
+            <div className="flex items-center gap-2 mb-4">
               <MapPin className="h-5 w-5 text-red-500" />
               <h3 className="font-semibold text-gray-800">عنوان التوصيل</h3>
             </div>
-            <Textarea
-              placeholder="أدخل عنوان التوصيل *"
-              value={orderForm.deliveryAddress}
-              onChange={(e) => setOrderForm(prev => ({ ...prev, deliveryAddress: e.target.value }))}
-              rows={3}
-              data-testid="input-delivery-address"
-            />
+            
+            {/* Location Picker Component */}
+            <div className="mb-4">
+              <LocationPicker 
+                onLocationSelect={handleLocationSelect}
+                placeholder="اختر موقع التوصيل من الخريطة"
+              />
+            </div>
+
+            {/* Manual Address Input */}
+            <div className="space-y-2">
+              <label className="text-sm font-medium text-gray-700">أو أدخل العنوان يدوياً:</label>
+              <Textarea
+                placeholder="أدخل عنوان التوصيل بالتفصيل *"
+                value={orderForm.deliveryAddress}
+                onChange={(e) => setOrderForm(prev => ({ ...prev, deliveryAddress: e.target.value }))}
+                rows={3}
+                data-testid="input-delivery-address"
+                className="border-gray-300 focus:border-red-500 focus:ring-red-500"
+              />
+            </div>
+
+            {/* Location Coordinates Display */}
+            {orderForm.locationData && (
+              <div className="mt-3 p-3 bg-green-50 border border-green-200 rounded-lg">
+                <div className="flex items-center gap-2">
+                  <MapPin className="h-4 w-4 text-green-600" />
+                  <span className="text-sm font-medium text-green-800">تم تحديد الموقع بدقة</span>
+                </div>
+                <p className="text-xs text-green-700 mt-1">
+                  📍 الإحداثيات: {orderForm.locationData.lat.toFixed(6)}, {orderForm.locationData.lng.toFixed(6)}
+                </p>
+                <p className="text-xs text-green-700">
+                  سيتم توصيل طلبك بدقة للموقع المحدد
+                </p>
+              </div>
+            )}
           </CardContent>
         </Card>
 

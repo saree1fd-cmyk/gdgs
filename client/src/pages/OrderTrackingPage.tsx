@@ -33,11 +33,11 @@ export default function OrderTrackingPage() {
   const { orderId } = useParams<{ orderId: string }>();
   const [, setLocation] = useLocation();
   
-  // جلب بيانات الطلب الحقيقية من API
-  const { data: orderData, isLoading, error } = useQuery<{order: OrderDetails, tracking: OrderStatus[]}>({
+  // جلب بيانات الطلب الحقيقية من API مع تحديثات سريعة
+  const { data: orderData, isLoading, error, refetch } = useQuery<{order: OrderDetails, tracking: OrderStatus[]}>({
     queryKey: [`/api/orders/${orderId}/track`],
     enabled: !!orderId,
-    refetchInterval: 30000, // تحديث كل 30 ثانية للإشعارات الفورية
+    refetchInterval: 5000, // تحديث كل 5 ثوانِ للحصول على تحديثات سريعة
   });
 
   if (isLoading) {
@@ -140,6 +140,12 @@ export default function OrderTrackingPage() {
             </div>
           </CardHeader>
           <CardContent className="space-y-4">
+            {/* Live Update Indicator */}
+            <div className="flex items-center gap-2 text-xs text-green-600 bg-green-50 px-2 py-1 rounded-full w-fit">
+              <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse"></div>
+              <span>التحديث المباشر مفعل</span>
+            </div>
+            
             <div className="flex items-center gap-3">
               <Clock className="h-5 w-5 text-muted-foreground" />
               <span className="text-foreground">الوقت المتوقع للوصول: </span>

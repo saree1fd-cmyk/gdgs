@@ -119,18 +119,42 @@ export default function DriverApp() {
 
   const updateOrderStatus = async (orderId: string, status: string) => {
     try {
-      const response = await fetch(`/api/orders/${orderId}`, {
-        method: 'PUT',
+      // استخدام endpoint الصحيح لتحديث حالة الطلب مع التتبع
+      const response = await fetch(`/api/orders/${orderId}/status`, {
+        method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ status })
+        body: JSON.stringify({ 
+          status,
+          updatedBy: driverId,
+          updatedByType: 'driver',
+          message: getStatusUpdateMessage(status)
+        })
       });
       
       if (response.ok) {
+        // إعادة جلب الطلبات لعرض التحديثات
         fetchMyOrders();
+        
+        // إشعار نجاح
+        console.log(`تم تحديث حالة الطلب ${orderId} إلى ${status}`);
+      } else {
+        const errorData = await response.json().catch(() => ({}));
+        console.error('فشل تحديث حالة الطلب:', errorData);
       }
     } catch (error) {
       console.error('خطأ في تحديث حالة الطلب:', error);
     }
+  };
+
+  // رسائل تحديث حالة الطلب
+  const getStatusUpdateMessage = (status: string) => {
+    const messages = {
+      'picked_up': 'تم استلام الطلب من المطعم وجاري التوصيل',
+      'on_way': 'الموصل في الطريق إليك الآن',
+      'delivered': 'تم تسليم الطلب بنجاح',
+      'cancelled': 'تم إلغاء الطلب'
+    };
+    return messages[status as keyof typeof messages] || `تم تحديث حالة الطلب إلى ${status}`;
   };
 
   const toggleAvailability = async () => {

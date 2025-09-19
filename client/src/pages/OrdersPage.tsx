@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { useLocation } from 'wouter';
 import { useQuery } from '@tanstack/react-query';
-import { ArrowRight, Package, Clock, CheckCircle, XCircle, Eye } from 'lucide-react';
+import { ArrowRight, Package, Clock, CheckCircle, XCircle, Eye, Loader } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -11,16 +11,35 @@ import { useToast } from '@/hooks/use-toast';
 interface Order {
   id: string;
   orderNumber: string;
-  restaurantName: string;
-  items: Array<{
-    name: string;
-    quantity: number;
-    price: number;
-  }>;
+  customerName: string;
+  customerPhone: string;
+  customerEmail?: string;
+  deliveryAddress: string;
+  notes?: string;
+  paymentMethod: string;
+  items: string; // JSON string from database
+  subtotal: string;
+  deliveryFee: string;
+  total: string;
   totalAmount: string;
+  restaurantId: string;
+  restaurantName?: string;
   status: 'pending' | 'confirmed' | 'preparing' | 'on_way' | 'delivered' | 'cancelled';
   createdAt: string;
-  estimatedDelivery?: string;
+  updatedAt: string;
+  estimatedTime?: string;
+  driverEarnings: string;
+  customerId?: string;
+  parsedItems?: OrderItem[]; // Add this for processed orders
+}
+
+interface OrderItem {
+  id?: string;
+  name: string;
+  quantity: number;
+  price: number;
+  restaurantId?: string;
+  restaurantName?: string;
 }
 
 export default function OrdersPage() {
@@ -28,46 +47,102 @@ export default function OrdersPage() {
   const { toast } = useToast();
   const [selectedTab, setSelectedTab] = useState<'all' | 'active' | 'completed' | 'cancelled'>('all');
 
-  // Mock orders data - in real app this would come from API
-  const [orders] = useState<Order[]>([
+  // Use a demo customer ID for testing - in real app this would come from authentication context
+  const customerId = 'demo-customer-id';
+
+  // Fetch orders from database
+  const { data: orders = [], isLoading, error } = useQuery<Order[]>({
+    queryKey: ['orders', customerId],
+    queryFn: async () => {
+      const response = await fetch(`/api/customers/${customerId}/orders`);
+      if (!response.ok) {
+        throw new Error('فشل في جلب الطلبات');
+      }
+      const data = await response.json();
+      
+      // Process each order to parse items and fetch restaurant name
+      const processedOrders = await Promise.all(data.map(async (order: Order) => {
+        let parsedItems: OrderItem[] = [];
+        try {
+          parsedItems = JSON.parse(order.items);
+        } catch (e) {
+          console.error('خطأ في تحليل عناصر الطلب:', e);
+        }
+        
+        // Try to get restaurant name from items if not available
+        let restaurantName = order.restaurantName;
+        if (!restaurantName && parsedItems.length > 0 && parsedItems[0].restaurantName) {
+          restaurantName = parsedItems[0].restaurantName;
+        } else if (!restaurantName) {
+          restaurantName = 'مطعم غير معروف';
+        }
+        
+        return {
+          ...order,
+          restaurantName,
+          parsedItems
+        };
+      }));
+      
+      return processedOrders;
+    },
+    retry: 1
+  });
+
+  // Mock fallback orders for demo if no orders in database
+  const fallbackOrders: Order[] = [
     {
       id: '1',
       orderNumber: 'ORD001',
+      customerName: 'عميل تجريبي',
+      customerPhone: '123456789',
+      customerEmail: 'demo@example.com',
+      deliveryAddress: 'صنعاء، حي السبعين',
+      notes: 'طلب تجريبي',
+      paymentMethod: 'cash',
+      items: JSON.stringify([{ name: 'عربكة بالقشطة والعسل', quantity: 2, price: 55 }, { name: 'شاي كرك', quantity: 1, price: 8 }]),
+      subtotal: '118',
+      deliveryFee: '5',
+      total: '123',
+      totalAmount: '123',
+      restaurantId: 'demo-restaurant',
       restaurantName: 'مطعم الزعتر الأصيل',
-      items: [
-        { name: 'عربكة بالقشطة والعسل', quantity: 2, price: 55 },
-        { name: 'شاي كرك', quantity: 1, price: 8 }
-      ],
-      totalAmount: '118',
-      status: 'on_way',
+      status: 'on_way' as const,
       createdAt: new Date(Date.now() - 30 * 60000).toISOString(),
-      estimatedDelivery: '25 دقيقة'
+      updatedAt: new Date(Date.now() - 30 * 60000).toISOString(),
+      estimatedTime: '25 دقيقة',
+      driverEarnings: '10',
+      customerId: 'demo-customer-id',
+      parsedItems: [{ name: 'عربكة بالقشطة والعسل', quantity: 2, price: 55 }, { name: 'شاي كرك', quantity: 1, price: 8 }]
     },
     {
       id: '2',
       orderNumber: 'ORD002',
-      restaurantName: 'مطعم البخاري الملكي',
-      items: [
-        { name: 'برياني لحم', quantity: 1, price: 45 },
-        { name: 'سلطة يوغرت', quantity: 1, price: 12 }
-      ],
+      customerName: 'عميل تجريبي',
+      customerPhone: '123456789',
+      customerEmail: 'demo@example.com',
+      deliveryAddress: 'صنعاء، شارع الزبيري',
+      notes: 'طلب تجريبي',
+      paymentMethod: 'cash',
+      items: JSON.stringify([{ name: 'برياني لحم', quantity: 1, price: 45 }, { name: 'سلطة يوغرت', quantity: 1, price: 12 }]),
+      subtotal: '57',
+      deliveryFee: '5',
+      total: '62',
       totalAmount: '62',
-      status: 'delivered',
-      createdAt: new Date(Date.now() - 2 * 24 * 60 * 60000).toISOString()
-    },
-    {
-      id: '3',
-      orderNumber: 'ORD003',
-      restaurantName: 'مطعم الكباب التركي',
-      items: [
-        { name: 'كباب مشكل', quantity: 1, price: 38 },
-        { name: 'خبز تركي', quantity: 2, price: 6 }
-      ],
-      totalAmount: '49',
-      status: 'cancelled',
-      createdAt: new Date(Date.now() - 5 * 24 * 60 * 60000).toISOString()
+      restaurantId: 'demo-restaurant-2',
+      restaurantName: 'مطعم البخاري الملكي',
+      status: 'delivered' as const,
+      createdAt: new Date(Date.now() - 2 * 24 * 60 * 60000).toISOString(),
+      updatedAt: new Date(Date.now() - 2 * 24 * 60 * 60000).toISOString(),
+      estimatedTime: '30 دقيقة',
+      driverEarnings: '8',
+      customerId: 'demo-customer-id',
+      parsedItems: [{ name: 'برياني لحم', quantity: 1, price: 45 }, { name: 'سلطة يوغرت', quantity: 1, price: 12 }]
     }
-  ]);
+  ];
+
+  // Use database orders if available, otherwise use fallback
+  const displayOrders = orders.length > 0 ? orders : fallbackOrders;
 
   const getStatusLabel = (status: string) => {
     const statusMap = {
@@ -105,7 +180,7 @@ export default function OrdersPage() {
     return iconMap[status as keyof typeof iconMap] || Clock;
   };
 
-  const filteredOrders = orders.filter(order => {
+  const filteredOrders = displayOrders.filter(order => {
     if (selectedTab === 'all') return true;
     if (selectedTab === 'active') return ['pending', 'confirmed', 'preparing', 'on_way'].includes(order.status);
     if (selectedTab === 'completed') return order.status === 'delivered';
@@ -125,11 +200,38 @@ export default function OrdersPage() {
   };
 
   const tabs = [
-    { id: 'all', label: 'جميع الطلبات', count: orders.length },
-    { id: 'active', label: 'النشطة', count: orders.filter(o => ['pending', 'confirmed', 'preparing', 'on_way'].includes(o.status)).length },
-    { id: 'completed', label: 'المكتملة', count: orders.filter(o => o.status === 'delivered').length },
-    { id: 'cancelled', label: 'الملغية', count: orders.filter(o => o.status === 'cancelled').length }
+    { id: 'all', label: 'جميع الطلبات', count: displayOrders.length },
+    { id: 'active', label: 'النشطة', count: displayOrders.filter(o => ['pending', 'confirmed', 'preparing', 'on_way'].includes(o.status)).length },
+    { id: 'completed', label: 'المكتملة', count: displayOrders.filter(o => o.status === 'delivered').length },
+    { id: 'cancelled', label: 'الملغية', count: displayOrders.filter(o => o.status === 'cancelled').length }
   ];
+
+  // Show loading state
+  if (isLoading) {
+    return (
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+        <div className="text-center">
+          <Loader className="h-8 w-8 animate-spin mx-auto mb-4 text-red-500" />
+          <p className="text-gray-600">جاري تحميل طلباتك...</p>
+        </div>
+      </div>
+    );
+  }
+
+  // Show error state
+  if (error) {
+    return (
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+        <div className="text-center">
+          <XCircle className="h-8 w-8 mx-auto mb-4 text-red-500" />
+          <p className="text-red-600 mb-4">حدث خطأ في تحميل الطلبات</p>
+          <Button onClick={() => window.location.reload()} className="bg-red-500 hover:bg-red-600">
+            إعادة المحاولة
+          </Button>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -189,7 +291,6 @@ export default function OrdersPage() {
             ) : (
               filteredOrders.map((order) => {
                 const StatusIcon = getStatusIcon(order.status);
-                const totalItems = order.items.reduce((sum, item) => sum + item.quantity, 0);
                 
                 return (
                   <Card key={order.id} className="overflow-hidden">
@@ -212,25 +313,33 @@ export default function OrdersPage() {
                     <CardContent className="space-y-4">
                       {/* Order Items */}
                       <div className="space-y-2">
-                        {order.items.map((item, index) => (
+                        {order.parsedItems?.map((item: OrderItem, index: number) => (
                           <div key={index} className="flex justify-between text-sm">
                             <span>{item.quantity}x {item.name}</span>
                             <span className="font-medium">{item.price} ر.س</span>
                           </div>
-                        ))}
+                        )) || (
+                          <div className="text-sm text-gray-500">
+                            لا توجد تفاصيل العناصر
+                          </div>
+                        )}
                       </div>
 
                       {/* Order Summary */}
                       <div className="border-t pt-3 space-y-2">
                         <div className="flex justify-between text-sm text-gray-600">
-                          <span>عدد الأصناف: {totalItems}</span>
+                          <span>عدد الأصناف: {order.parsedItems?.reduce((sum: number, item: OrderItem) => sum + item.quantity, 0) || 0}</span>
                           <span>المجموع: {order.totalAmount} ر.س</span>
                         </div>
                         <div className="flex justify-between text-xs text-gray-500">
                           <span>تاريخ الطلب: {new Date(order.createdAt).toLocaleDateString('ar-SA')}</span>
-                          {order.estimatedDelivery && (
-                            <span>الوقت المتوقع: {order.estimatedDelivery}</span>
+                          {order.estimatedTime && (
+                            <span>الوقت المتوقع: {order.estimatedTime}</span>
                           )}
+                        </div>
+                        <div className="flex justify-between text-xs text-gray-500">
+                          <span>العنوان: {order.deliveryAddress}</span>
+                          <span>الدفع: {order.paymentMethod === 'cash' ? 'نقدي' : 'إلكتروني'}</span>
                         </div>
                       </div>
 

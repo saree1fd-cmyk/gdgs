@@ -1,9 +1,10 @@
 import React, { useState, useEffect } from 'react';
+import { useAuth } from '../../context/AuthContext';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { Card, CardContent, CardHeader, CardTitle } from '../components/ui/card';
-import { Button } from '../components/ui/button';
-import { Badge } from '../components/ui/badge';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '../components/ui/tabs';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Button } from '@/components/ui/button';
+import { Badge } from '@/components/ui/badge';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { useToast } from '@/hooks/use-toast';
 import { 
   Truck, 
@@ -14,9 +15,7 @@ import {
   Navigation,
   Phone,
   CheckCircle,
-  XCircle,
   Package,
-  Settings,
   TrendingUp,
   Activity,
   Map,
@@ -32,13 +31,15 @@ interface DriverDashboardProps {
 }
 
 export const DriverDashboard: React.FC<DriverDashboardProps> = ({ onLogout }) => {
+  const { logout, user } = useAuth();
   const [activeTab, setActiveTab] = useState('dashboard');
   const [driverStatus, setDriverStatus] = useState<'available' | 'busy' | 'offline'>('available');
   const [currentLocation, setCurrentLocation] = useState<{lat: number, lng: number} | null>(null);
   const { toast } = useToast();
   const queryClient = useQueryClient();
 
-  const driverId = 'driver1'; // Default for testing
+  // Get driver ID from authenticated user or fallback for testing
+  const driverId = user?.id || 'driver1';
 
   // Fetch driver info
   const { data: driver } = useQuery<Driver>({
@@ -153,6 +154,7 @@ export const DriverDashboard: React.FC<DriverDashboardProps> = ({ onLogout }) =>
   }, []);
 
   const handleLogout = () => {
+    logout();
     onLogout();
   };
 

@@ -10,7 +10,7 @@ import { Loader2, Truck, Phone, Lock, Eye, EyeOff } from 'lucide-react';
 
 export default function DriverLoginPage() {
   const [, setLocation] = useLocation();
-  const { login, user, isLoading } = useAuth();
+  const { login, user, loading } = useAuth();
   const [formData, setFormData] = useState({
     phone: '',
     password: ''
@@ -61,7 +61,7 @@ export default function DriverLoginPage() {
     if (error) setError(''); // مسح الخطأ عند الكتابة
   };
 
-  if (isLoading) {
+  if (loading) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-green-50 via-white to-green-50">
         <Loader2 className="h-8 w-8 animate-spin text-primary" />
