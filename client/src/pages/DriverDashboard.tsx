@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { useAuth } from '../context/AuthContext';
+// import { useAuth } from '../context/AuthContext'; // تم حذف نظام المصادقة
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { Card, CardContent, CardHeader, CardTitle } from '../components/ui/card';
 import { Button } from '../components/ui/button';
@@ -33,7 +33,7 @@ interface DriverDashboardProps {
 }
 
 export const DriverDashboard: React.FC<DriverDashboardProps> = ({ onLogout }) => {
-  const { logout } = useAuth();
+  // const { logout } = useAuth(); // تم حذف نظام المصادقة
   const [activeTab, setActiveTab] = useState('dashboard');
   const [driverStatus, setDriverStatus] = useState<'available' | 'busy' | 'offline'>('available');
   const [currentLocation, setCurrentLocation] = useState<{lat: number, lng: number} | null>(null);

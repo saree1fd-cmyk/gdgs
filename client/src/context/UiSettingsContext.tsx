@@ -59,12 +59,13 @@ export function UiSettingsProvider({ children }: { children: React.ReactNode }) 
     }
   };
 
-  const getSetting = (key: string, defaultValue: string = '') => {
-    return settings[key] || defaultValue;
+  const getSetting = (key: string, defaultValue: string = 'true') => {
+    return settings[key] !== undefined ? settings[key] : defaultValue;
   };
 
   const isFeatureEnabled = (key: string) => {
-    return getSetting(key) === 'true';
+    // العائد الافتراضي هو true إذا لم تكن القيمة محفوظة في قاعدة البيانات
+    return getSetting(key, 'true') === 'true';
   };
 
   const refreshSettings = async () => {

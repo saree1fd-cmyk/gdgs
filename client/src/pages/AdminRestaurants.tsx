@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { Plus, Edit, Trash2, Store, Save, X, Clock, Star } from 'lucide-react';
+import ImageUpload from '@/components/ImageUpload';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
@@ -354,45 +355,15 @@ export default function AdminRestaurants() {
                 />
               </div>
 
-              <div>
-                <Label htmlFor="image">رابط الصورة</Label>
-                <div className="flex gap-2">
-                  <Input
-                    id="image"
-                    value={formData.image}
-                    onChange={(e) => setFormData(prev => ({ ...prev, image: e.target.value }))}
-                    placeholder="https://example.com/image.jpg"
-                    required
-                    data-testid="input-restaurant-image"
-                    className="flex-1"
-                  />
-                  <Button
-                    type="button"
-                    variant="outline"
-                    onClick={() => document.getElementById('restaurant-file-upload')?.click()}
-                    data-testid="button-select-image"
-                  >
-                    اختيار صورة
-                  </Button>
-                  <input
-                    id="restaurant-file-upload"
-                    type="file"
-                    accept="image/*"
-                    className="hidden"
-                    onChange={(e) => {
-                      const file = e.target.files?.[0];
-                      if (file) {
-                        const reader = new FileReader();
-                        reader.onload = (event) => {
-                          const result = event.target?.result as string;
-                          setFormData(prev => ({ ...prev, image: result }));
-                        };
-                        reader.readAsDataURL(file);
-                      }
-                    }}
-                  />
-                </div>
-              </div>
+              <ImageUpload
+                label="صورة المطعم"
+                value={formData.image}
+                onChange={(url) => setFormData(prev => ({ ...prev, image: url }))}
+                bucket="restaurants"
+                placeholder="https://example.com/restaurant.jpg"
+                required
+                data-testid="input-restaurant-image"
+              />
 
               <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                 <div>
