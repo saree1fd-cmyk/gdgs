@@ -1,43 +1,42 @@
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { useLocation } from 'wouter';
 import { 
-  Search, 
-  MapPin, 
   Star, 
   ShoppingBag,
-  Truck,
-  Settings,
-  User,
-  Menu,
-  Beef,
-  Cookie,
-  UtensilsCrossed,
-  Heart,
-  Timer
+  UtensilsCrossed
 } from 'lucide-react';
 import TimingBanner from '@/components/TimingBanner';
+import CategoryTabs from '@/components/CategoryTabs';
+import { LocationPicker, type LocationData } from '../components/LocationPicker';
 import { Card, CardContent } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import type { Category, Restaurant, SpecialOffer } from '@shared/schema';
+import { useUiSettings } from '@/context/UiSettingsContext';
+import type { Restaurant, SpecialOffer } from '@shared/schema';
 
 export default function HomePage() {
   const [, setLocation] = useLocation();
-  const [selectedCategory, setSelectedCategory] = useState('all'); // للفئات
-  const [selectedTab, setSelectedTab] = useState('all'); // للتبويبات
+  const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
+  const [selectedTab, setSelectedTab] = useState('all');
+  const [selectedDeliveryLocation, setSelectedDeliveryLocation] = useState<LocationData | null>(null);
+  const { isFeatureEnabled } = useUiSettings();
 
   // جلب البيانات
   const { data: restaurants } = useQuery<Restaurant[]>({
     queryKey: ['/api/restaurants'],
   });
 
-  const { data: categories } = useQuery<Category[]>({
-    queryKey: ['/api/categories'],
+  const { data: specialOffers } = useQuery<SpecialOffer[]>({
+    queryKey: ['/api/special-offers'],
   });
 
   const handleRestaurantClick = (restaurantId: string) => {
     setLocation(`/restaurant/${restaurantId}`);
+  };
+
+  const handleLocationSelect = (location: LocationData) => {
+    setSelectedDeliveryLocation(location);
+    console.log('تم اختيار موقع التوصيل:', location);
   };
 
   return (
@@ -47,68 +46,50 @@ export default function HomePage() {
 
       {/* Main Content */}
       <main className="max-w-md mx-auto px-4 py-6">
-        {/* Category Grid - Dynamic from API */}
-        <section className="mb-6">
-          <div className="grid grid-cols-4 gap-3">
-            {categories?.slice(0, 3).map((category) => (
-              <div key={category.id} className="text-center cursor-pointer" onClick={() => { setSelectedCategory(category.id); setSelectedTab('all'); }}>
-                <div className="w-16 h-16 mx-auto mb-2 bg-white rounded-2xl shadow-sm flex items-center justify-center border border-gray-100">
-                  {category.icon ? (
-                    <i className={`${category.icon} text-2xl text-primary`} />
-                  ) : (
-                    <UtensilsCrossed className="h-8 w-8 text-orange-500" />
-                  )}
-                </div>
-                <h4 className="text-xs font-medium text-gray-700">{category.name}</h4>
-              </div>
-            ))}
-            
-            {/* All Categories */}
-            <div className="text-center cursor-pointer" onClick={() => { setSelectedCategory('all'); setSelectedTab('all'); }}>
-              <div className="w-16 h-16 mx-auto mb-2 bg-white rounded-2xl shadow-sm flex items-center justify-center border border-gray-100">
-                <Menu className="h-8 w-8 text-blue-500" />
-              </div>
-              <h4 className="text-xs font-medium text-gray-700">كل التصنيفات</h4>
-            </div>
-          </div>
-        </section>
+        {/* Location Picker - Controlled by admin settings */}
+        {isFeatureEnabled('show_search_bar') && (
+          <section className="mb-6">
+            <LocationPicker 
+              onLocationSelect={handleLocationSelect}
+              placeholder="حدد موقع التوصيل..."
+            />
+          </section>
+        )}
 
-        {/* Promotional Banners - Exactly like reference image */}
-        <section className="mb-6">
-          <div className="grid grid-cols-2 gap-3">
-            {/* Special Offer Banner */}
-            <div className="relative h-32 overflow-hidden rounded-2xl cursor-pointer hover:shadow-lg transition-shadow">
-              <div className="absolute inset-0 orange-gradient p-4 text-white">
-                <div className="absolute top-3 left-3 bg-white/20 px-2 py-1 rounded-full text-xs">
-                  عرض خاص
-                </div>
-                <div className="absolute bottom-3 right-3">
-                  <h3 className="text-sm font-bold mb-1">عرض مجاني يصل عبر التطبيق</h3>
-                  <p className="text-xs opacity-90">عند طلب أي اكل من التطبيق</p>
-                  <p className="text-xs mt-1 bg-white/20 inline-block px-2 py-1 rounded">
-                    صالح حتى 15.000 د
-                  </p>
-                </div>
-              </div>
-            </div>
+        {/* Category Tabs - Controlled by admin settings */}
+        <CategoryTabs 
+          selectedCategory={selectedCategory}
+          onCategoryChange={setSelectedCategory}
+        />
 
-            {/* Million Offer Banner */}
-            <div className="relative h-32 overflow-hidden rounded-2xl cursor-pointer hover:shadow-lg transition-shadow">
-              <div className="absolute inset-0 red-gradient p-4 text-white">
-                <div className="absolute top-3 left-3 bg-white/20 px-2 py-1 rounded-full text-xs">
-                  1,000,000
+        {/* Special Offers - Controlled by admin settings */}
+        {isFeatureEnabled('show_special_offers') && specialOffers && specialOffers.length > 0 && (
+          <section className="mb-6">
+            <div className="grid grid-cols-2 gap-3">
+              {specialOffers.slice(0, 2).map((offer) => (
+                <div 
+                  key={offer.id}
+                  className="relative h-32 overflow-hidden rounded-2xl cursor-pointer hover:shadow-lg transition-shadow"
+                >
+                  <div className="absolute inset-0 orange-gradient p-4 text-white">
+                    <div className="absolute top-3 left-3 bg-white/20 px-2 py-1 rounded-full text-xs">
+                      {offer.discountPercent ? `${offer.discountPercent}%` : 'عرض خاص'}
+                    </div>
+                    <div className="absolute bottom-3 right-3">
+                      <h3 className="text-sm font-bold mb-1">{offer.title}</h3>
+                      <p className="text-xs opacity-90">{offer.description}</p>
+                      {offer.validUntil && (
+                        <p className="text-xs mt-1 bg-white/20 inline-block px-2 py-1 rounded">
+                          صالح حتى {new Date(offer.validUntil).toLocaleDateString('ar-YE')}
+                        </p>
+                      )}
+                    </div>
+                  </div>
                 </div>
-                <div className="absolute bottom-3 right-3">
-                  <h3 className="text-sm font-bold mb-1">كل العروض</h3>
-                  <p className="text-xs opacity-90">الاطباق الأمريكية</p>
-                  <p className="text-xs mt-1 bg-white/20 inline-block px-2 py-1 rounded">
-                    متاح حتى 15.000 د
-                  </p>
-                </div>
-              </div>
+              ))}
             </div>
-          </div>
-        </section>
+          </section>
+        )}
 
         {/* Restaurant Section with Tab Navigation */}
         <section>
@@ -162,7 +143,7 @@ export default function HomePage() {
           <div className="space-y-4">
             {restaurants?.filter(restaurant => {
               // فلترة حسب الفئة
-              if (selectedCategory !== 'all' && restaurant.categoryId !== selectedCategory) {
+              if (selectedCategory && restaurant.categoryId !== selectedCategory) {
                 return false;
               }
               

@@ -141,6 +141,8 @@ const menuCategories = menuItems
               item={item} 
               disabled={!orderStatus.canOrder}
               disabledMessage={orderStatus.message}
+              restaurantId={restaurant.id}
+              restaurantName={restaurant.name}
             />
           ))
         ) : (
