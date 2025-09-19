@@ -86,35 +86,51 @@ export default function Home() {
                 >
                   {activeOffers.map((offer, index) => (
                     <div key={offer.id} className="w-full flex-shrink-0">
-                      <div className="relative h-40 overflow-hidden rounded-2xl cursor-pointer hover:shadow-lg transition-shadow">
+                      <div 
+                        className="relative h-40 overflow-hidden rounded-2xl cursor-pointer hover:shadow-lg transition-shadow"
+                        onClick={() => {
+                          // Navigate to first available restaurant when clicking on offer
+                          if (filteredRestaurants && filteredRestaurants.length > 0) {
+                            handleRestaurantClick(filteredRestaurants[0].id);
+                          } else if (restaurants && restaurants.length > 0) {
+                            handleRestaurantClick(restaurants[0].id);
+                          }
+                        }}
+                        data-testid={`offer-click-${offer.id}`}
+                      >
                         {offer.image ? (
                           <img 
                             src={offer.image} 
                             alt={offer.title}
-                            className="w-full h-full object-cover"
+                            className="w-full h-full object-cover transition-transform duration-300 hover:scale-105"
                           />
                         ) : (
                           <div className="w-full h-full orange-gradient" />
                         )}
                         <div className="absolute inset-0 bg-black/30 p-4 text-white flex flex-col justify-between">
                           <div className="flex justify-between items-start">
-                            <Badge className="bg-white/20 text-white hover:bg-white/30">
+                            <Badge className="bg-white/20 text-white hover:bg-white/30 backdrop-blur-sm">
                               عرض خاص
                             </Badge>
                             {offer.discountPercent && (
-                              <Badge className="bg-red-500 text-white">
+                              <Badge className="bg-red-500 text-white backdrop-blur-sm">
                                 خصم {offer.discountPercent}%
                               </Badge>
                             )}
                           </div>
                           <div className="text-right">
-                            <h3 className="text-lg font-bold mb-1">{offer.title}</h3>
-                            <p className="text-sm opacity-90 mb-2">{offer.description}</p>
+                            <h3 className="text-lg font-bold mb-1 drop-shadow-lg">{offer.title}</h3>
+                            <p className="text-sm opacity-90 mb-2 drop-shadow">{offer.description}</p>
                             {offer.minimumOrder && parseFloat(offer.minimumOrder) > 0 && (
-                              <p className="text-xs bg-white/20 inline-block px-2 py-1 rounded">
+                              <p className="text-xs bg-white/20 inline-block px-2 py-1 rounded backdrop-blur-sm">
                                 الحد الأدنى: {offer.minimumOrder} ريال
                               </p>
                             )}
+                            <div className="mt-2">
+                              <span className="text-xs bg-orange-500/80 inline-block px-2 py-1 rounded-full backdrop-blur-sm font-medium">
+                                اضغط للانتقال للمطعم 🍽️
+                              </span>
+                            </div>
                           </div>
                         </div>
                       </div>
@@ -188,92 +204,127 @@ export default function Home() {
             </div>
           )}
 
-          {/* Restaurant Cards */}
+          {/* Enhanced Restaurant Cards */}
           <div className="space-y-4">
             {filteredRestaurants.map((restaurant) => (
               <div 
                 key={restaurant.id}
-                className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden cursor-pointer hover:shadow-md transition-shadow"
+                className="bg-white rounded-3xl shadow-lg border-0 overflow-hidden cursor-pointer hover:shadow-xl transition-all duration-300 transform hover:-translate-y-1 hover:scale-[1.02]"
                 onClick={() => handleRestaurantClick(restaurant.id)}
                 data-testid={`card-restaurant-${restaurant.id}`}
               >
-                <div className="flex p-4">
-                  {/* Restaurant Logo/Image */}
-                  <div className="w-16 h-16 bg-gray-100 rounded-xl flex-shrink-0 flex items-center justify-center mr-4">
+                <div className="relative">
+                  {/* Restaurant Image with Gradient Overlay */}
+                  <div className="relative h-32 overflow-hidden">
                     {restaurant.image ? (
                       <img 
                         src={restaurant.image} 
                         alt={restaurant.name} 
-                        className="w-full h-full object-cover rounded-xl" 
+                        className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110" 
                       />
                     ) : (
-                      <UtensilsCrossed className="h-8 w-8 text-gray-400" />
+                      <div className="w-full h-full bg-gradient-to-br from-orange-400 to-orange-600 flex items-center justify-center">
+                        <UtensilsCrossed className="h-12 w-12 text-white" />
+                      </div>
                     )}
+                    <div className="absolute inset-0 bg-gradient-to-t from-black/50 via-transparent to-transparent" />
+                    
+                    {/* Status Badge on Image */}
+                    <div className="absolute top-3 left-3">
+                      <Badge 
+                        className={`px-3 py-1 text-xs font-bold rounded-full backdrop-blur-sm border-0 shadow-lg ${
+                          restaurant.isOpen && !restaurant.isTemporarilyClosed 
+                            ? 'bg-emerald-500/90 text-white' 
+                            : 'bg-red-500/90 text-white'
+                        }`}
+                        data-testid={`status-restaurant-${restaurant.id}`}
+                      >
+                        {restaurant.isOpen && !restaurant.isTemporarilyClosed ? '🟢 مفتوح' : '🔴 مغلق'}
+                      </Badge>
+                    </div>
+
+                    {/* Featured Badge */}
+                    {restaurant.isFeatured && (
+                      <div className="absolute top-3 right-3">
+                        <Badge className="bg-yellow-500/90 text-black text-xs px-3 py-1 rounded-full backdrop-blur-sm border-0 shadow-lg font-bold">
+                          ⭐ مميز
+                        </Badge>
+                      </div>
+                    )}
+
+                    {/* Heart Icon */}
+                    <div className="absolute top-3 right-3 mr-16">
+                      <Heart 
+                        className="h-6 w-6 text-white/80 cursor-pointer hover:text-red-400 transition-colors drop-shadow-lg" 
+                        data-testid={`button-favorite-${restaurant.id}`}
+                      />
+                    </div>
                   </div>
                   
-                  {/* Restaurant Info */}
-                  <div className="flex-1">
+                  {/* Restaurant Info Card */}
+                  <div className="p-4 bg-white">
                     <div className="flex items-start justify-between">
-                      <div>
+                      <div className="flex-1">
                         <h4 
-                          className="font-semibold text-gray-900 text-sm mb-1"
+                          className="font-bold text-gray-900 text-base mb-2"
                           data-testid={`text-restaurant-name-${restaurant.id}`}
                         >
                           {restaurant.name}
                         </h4>
                         <p 
-                          className="text-xs text-gray-600 mb-2"
+                          className="text-sm text-gray-600 mb-3 line-clamp-2"
                           data-testid={`text-restaurant-description-${restaurant.id}`}
                         >
                           {restaurant.description}
                         </p>
-                        <div className="flex items-center gap-2 text-xs text-gray-500">
-                          <span data-testid={`text-delivery-time-${restaurant.id}`}>
-                            {restaurant.deliveryTime}
-                          </span>
-                          {restaurant.deliveryFee && parseFloat(restaurant.deliveryFee) > 0 && (
-                            <>
-                              <span>•</span>
-                              <span data-testid={`text-delivery-fee-${restaurant.id}`}>
-                                رسوم التوصيل: {restaurant.deliveryFee} ريال
-                              </span>
-                            </>
+                        
+                        {/* Rating and Stats Row */}
+                        <div className="flex items-center gap-4 mb-3">
+                          <div className="flex items-center gap-1">
+                            <Star className="h-4 w-4 text-yellow-400 fill-current" />
+                            <span 
+                              className="text-sm font-semibold text-gray-800"
+                              data-testid={`text-rating-${restaurant.id}`}
+                            >
+                              {restaurant.rating}
+                            </span>
+                            <span className="text-xs text-gray-500">({restaurant.reviewCount})</span>
+                          </div>
+                          
+                          <div className="flex items-center gap-1">
+                            <span 
+                              className="text-sm text-gray-600"
+                              data-testid={`text-delivery-time-${restaurant.id}`}
+                            >
+                              🕒 {restaurant.deliveryTime}
+                            </span>
+                          </div>
+                        </div>
+                        
+                        {/* Delivery Info */}
+                        <div className="flex items-center gap-2">
+                          {restaurant.deliveryFee && parseFloat(restaurant.deliveryFee) > 0 ? (
+                            <span 
+                              className="text-sm text-orange-600 font-medium bg-orange-50 px-2 py-1 rounded-lg"
+                              data-testid={`text-delivery-fee-${restaurant.id}`}
+                            >
+                              🚚 {restaurant.deliveryFee} ريال
+                            </span>
+                          ) : (
+                            <span 
+                              className="text-sm text-green-600 font-medium bg-green-50 px-2 py-1 rounded-lg"
+                              data-testid={`text-free-delivery-${restaurant.id}`}
+                            >
+                              🚚 توصيل مجاني
+                            </span>
                           )}
-                          {(!restaurant.deliveryFee || parseFloat(restaurant.deliveryFee) === 0) && (
-                            <>
-                              <span>•</span>
-                              <span data-testid={`text-free-delivery-${restaurant.id}`}>
-                                توصيل مجاني
-                              </span>
-                            </>
+                          
+                          {restaurant.minimumOrder && (
+                            <span className="text-sm text-gray-500 bg-gray-50 px-2 py-1 rounded-lg">
+                              📦 حد أدنى {restaurant.minimumOrder} ريال
+                            </span>
                           )}
                         </div>
-                      </div>
-                      
-                      {/* Rating and Actions */}
-                      <div className="text-left flex flex-col items-end">
-                        <div className="flex items-center gap-1 mb-2">
-                          <span 
-                            className="text-xs font-medium"
-                            data-testid={`text-rating-${restaurant.id}`}
-                          >
-                            {restaurant.rating}
-                          </span>
-                          <Star className="h-3 w-3 text-yellow-400 fill-current" />
-                        </div>
-                        <Badge 
-                          className={restaurant.isOpen && !restaurant.isTemporarilyClosed 
-                            ? 'bg-green-600 text-white hover:bg-green-700' 
-                            : 'bg-red-600 text-white hover:bg-red-700'
-                          }
-                          data-testid={`status-restaurant-${restaurant.id}`}
-                        >
-                          {restaurant.isOpen && !restaurant.isTemporarilyClosed ? 'مفتوح' : 'مغلق'}
-                        </Badge>
-                        <Heart 
-                          className="h-4 w-4 text-gray-400 cursor-pointer hover:text-red-500 mt-2" 
-                          data-testid={`button-favorite-${restaurant.id}`}
-                        />
                       </div>
                     </div>
                   </div>

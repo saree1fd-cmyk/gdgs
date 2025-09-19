@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { Package, CheckCircle, XCircle, Phone, MapPin, Filter } from 'lucide-react';
+import { Package, CheckCircle, XCircle, Phone, MapPin, Filter, Navigation } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -264,6 +264,22 @@ export default function AdminOrders() {
                     >
                       <Phone className="h-4 w-4" />
                       اتصال بالعميل
+                    </Button>
+                    
+                    <Button
+                      variant="outline"
+                      onClick={() => {
+                        const address = encodeURIComponent(order.deliveryAddress);
+                        const googleMapsUrl = order.customerLocationLat && order.customerLocationLng 
+                          ? `https://www.google.com/maps?q=${order.customerLocationLat},${order.customerLocationLng}`
+                          : `https://www.google.com/maps/search/?api=1&query=${address}`;
+                        window.open(googleMapsUrl, '_blank');
+                      }}
+                      className="gap-2"
+                      data-testid={`button-track-location-${order.id}`}
+                    >
+                      <Navigation className="h-4 w-4" />
+                      تتبع الموقع
                     </Button>
                   </div>
                 </CardContent>

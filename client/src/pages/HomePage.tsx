@@ -1,26 +1,16 @@
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { useLocation } from 'wouter';
 import { 
-  Search, 
-  MapPin, 
   Star, 
   ShoppingBag,
-  Truck,
-  Settings,
-  User,
   Menu,
-  Beef,
-  Cookie,
-  UtensilsCrossed,
-  Heart,
-  Timer
+  UtensilsCrossed
 } from 'lucide-react';
 import TimingBanner from '@/components/TimingBanner';
 import { Card, CardContent } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import type { Category, Restaurant, SpecialOffer } from '@shared/schema';
+import type { Category, Restaurant } from '@shared/schema';
 
 export default function HomePage() {
   const [, setLocation] = useLocation();

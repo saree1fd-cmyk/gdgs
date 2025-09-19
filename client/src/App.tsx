@@ -8,6 +8,7 @@ import { ThemeProvider } from "./context/ThemeContext";
 // import { AuthProvider, useAuth } from "./context/AuthContext"; // تم حذف نظام المصادقة
 import { LocationProvider, useLocation } from "./context/LocationContext";
 import { UiSettingsProvider } from "./context/UiSettingsContext";
+import { NotificationProvider } from "./context/NotificationContext";
 import { LocationPermissionModal } from "./components/LocationPermissionModal";
 import Layout from "./components/Layout";
 // import { LoginPage } from "./pages/LoginPage"; // تم حذف صفحات تسجيل الدخول
@@ -101,8 +102,10 @@ function App() {
           <UiSettingsProvider>
             <LocationProvider>
               <CartProvider>
-                <Toaster />
-                <MainApp />
+                <NotificationProvider>
+                  <Toaster />
+                  <MainApp />
+                </NotificationProvider>
               </CartProvider>
             </LocationProvider>
           </UiSettingsProvider>

@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useLocation } from 'wouter';
-import { ArrowRight, User, Phone, Mail, MapPin, Settings, Shield, Star, Clock, Receipt } from 'lucide-react';
+import { ArrowRight, User, Phone, Mail, MapPin, Settings, Shield, Star, Clock, Receipt, Truck } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
@@ -97,6 +97,7 @@ export default function Profile() {
 
   const menuItems = [
     { icon: Receipt, label: 'طلباتي', path: '/orders', description: 'عرض تاريخ الطلبات', testId: 'profile-orders' },
+    { icon: Truck, label: 'تطبيق الدلفري', path: '/driver', description: 'انتقال إلى تطبيق السائقين', testId: 'profile-delivery-app', onClick: () => { window.location.href = '/driver'; } },
     { icon: MapPin, label: 'العناوين المحفوظة', path: '/addresses', description: 'إدارة عناوين التوصيل', testId: 'profile-addresses' },
     { icon: Settings, label: 'الإعدادات', path: '/settings', description: 'إعدادات التطبيق والحساب', testId: 'profile-settings' },
     { icon: Shield, label: 'سياسة الخصوصية', path: '/privacy', description: 'سياسة الخصوصية وشروط الاستخدام', testId: 'profile-privacy' },
@@ -240,7 +241,7 @@ export default function Profile() {
                 key={item.path}
                 variant="ghost"
                 className="w-full h-auto p-4 justify-between hover:bg-accent"
-                onClick={() => setLocation(item.path)}
+                onClick={() => item.onClick ? item.onClick() : setLocation(item.path)}
                 data-testid={item.testId}
               >
                 <div className="flex items-center gap-3">
