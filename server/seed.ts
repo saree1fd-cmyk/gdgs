@@ -153,29 +153,94 @@ export async function seedDefaultData() {
 
     // Seed UI Settings
     const uiSettings = [
+      // Navigation Settings
       {
-        key: "delivery_fee_default",
-        value: "5",
-        category: "delivery",
-        description: "رسوم التوصيل الافتراضية"
+        key: "show_categories",
+        value: "true",
+        category: "navigation",
+        description: "عرض تصنيفات المطاعم في الصفحة الرئيسية"
       },
       {
-        key: "minimum_order_default",
-        value: "20",
-        category: "orders",
-        description: "الحد الأدنى للطلب"
+        key: "show_search_bar",
+        value: "true",
+        category: "navigation",
+        description: "عرض شريط البحث في الصفحة الرئيسية"
       },
+      {
+        key: "show_special_offers",
+        value: "true",
+        category: "navigation",
+        description: "عرض العروض الخاصة والتخفيضات"
+      },
+      {
+        key: "show_orders_page",
+        value: "true",
+        category: "navigation",
+        description: "عرض صفحة الطلبات في التنقل"
+      },
+      {
+        key: "show_track_orders_page",
+        value: "true",
+        category: "navigation",
+        description: "عرض صفحة تتبع الطلبات في التنقل"
+      },
+      {
+        key: "show_admin_panel",
+        value: "true",
+        category: "navigation",
+        description: "عرض لوحة التحكم الإدارية"
+      },
+      {
+        key: "show_delivery_app",
+        value: "true",
+        category: "navigation",
+        description: "عرض تطبيق التوصيل"
+      },
+      
+      // App Settings
       {
         key: "app_name",
-        value: "السريع للطلبات",
+        value: "السريع ون للتوصيل",
         category: "general",
-        description: "اسم التطبيق"
+        description: "اسم التطبيق الذي يظهر للمستخدمين"
       },
       {
         key: "app_theme",
-        value: "light",
-        category: "appearance",
-        description: "ثيم التطبيق"
+        value: "#007bff",
+        category: "general",
+        description: "اللون الأساسي للتطبيق (hex color)"
+      },
+      {
+        key: "delivery_fee_default",
+        value: "5",
+        category: "general",
+        description: "رسوم التوصيل الافتراضية (ريال)"
+      },
+      {
+        key: "minimum_order_default",
+        value: "25",
+        category: "general",
+        description: "الحد الأدنى لقيمة الطلب (ريال)"
+      },
+      
+      // Store Settings
+      {
+        key: "opening_time",
+        value: "08:00",
+        category: "store",
+        description: "وقت فتح المتجر (HH:MM)"
+      },
+      {
+        key: "closing_time",
+        value: "23:00",
+        category: "store",
+        description: "وقت إغلاق المتجر (HH:MM)"
+      },
+      {
+        key: "store_status",
+        value: "open",
+        category: "store",
+        description: "حالة المتجر الحالية"
       }
     ];
 
