@@ -200,6 +200,7 @@ export default function Layout({ children }: LayoutProps) {
             <Button
               variant="ghost"
               size="icon"
+              onClick={() => setLocation('/search')}
               className="text-white hover:bg-white/20"
               data-testid="button-search"
             >
