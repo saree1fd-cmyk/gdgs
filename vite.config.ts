@@ -44,10 +44,10 @@ export default defineConfig(async () => {
     },
     server: {
       host: "0.0.0.0",
-      port: 10000,
+      port: 5000,
       strictPort: false,
       hmr: {
-        port: 10000,
+        port: 5000,
       },
       fs: {
         strict: false,
