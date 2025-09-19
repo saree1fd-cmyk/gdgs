@@ -1,7 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { Plus, Edit, Trash2, Package, Save, X } from 'lucide-react';
-import ImageUpload from '@/components/ImageUpload';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
@@ -384,15 +383,45 @@ export default function AdminMenuItems() {
                   />
                 </div>
 
-                <ImageUpload
-                  label="صورة الوجبة"
-                  value={formData.image}
-                  onChange={(url) => setFormData(prev => ({ ...prev, image: url }))}
-                  bucket="menu-items"
-                  placeholder="https://example.com/food-image.jpg"
-                  required
-                  data-testid="input-menu-item-image"
-                />
+                <div>
+                  <Label htmlFor="image">رابط صورة الوجبة</Label>
+                  <div className="flex gap-2">
+                    <Input
+                      id="image"
+                      value={formData.image}
+                      onChange={(e) => setFormData(prev => ({ ...prev, image: e.target.value }))}
+                      placeholder="https://example.com/food-image.jpg"
+                      required
+                      data-testid="input-menu-item-image"
+                      className="flex-1"
+                    />
+                    <Button
+                      type="button"
+                      variant="outline"
+                      onClick={() => document.getElementById('menu-item-file-upload')?.click()}
+                      data-testid="button-select-menu-image"
+                    >
+                      اختيار صورة
+                    </Button>
+                    <input
+                      id="menu-item-file-upload"
+                      type="file"
+                      accept="image/*"
+                      className="hidden"
+                      onChange={(e) => {
+                        const file = e.target.files?.[0];
+                        if (file) {
+                          const reader = new FileReader();
+                          reader.onload = (event) => {
+                            const result = event.target?.result as string;
+                            setFormData(prev => ({ ...prev, image: result }));
+                          };
+                          reader.readAsDataURL(file);
+                        }
+                      }}
+                    />
+                  </div>
+                </div>
 
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div>

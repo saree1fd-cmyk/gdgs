@@ -8,6 +8,7 @@ import AdminOffers from "./AdminOffers";
 import AdminCategories from "./AdminCategories";
 import AdminUsers from "./AdminUsers";
 import AdminProfile from "./AdminProfile";
+import AdminUiSettings from "./admin/AdminUiSettings";
 import NotFound from "./not-found";
 
 // Admin Overview Page Component
@@ -112,6 +113,7 @@ export const AdminApp: React.FC<AdminAppProps> = () => {
         <Route path="/admin/users" component={AdminUsers} />
         <Route path="/admin/categories" component={AdminCategories} />
         <Route path="/admin/profile" component={AdminProfile} />
+        <Route path="/admin/ui-settings" component={AdminUiSettings} />
         <Route component={NotFound} />
       </Switch>
     </AdminLayout>
