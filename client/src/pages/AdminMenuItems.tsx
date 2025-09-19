@@ -34,27 +34,38 @@ export default function AdminMenuItems() {
     restaurantId: '',
   });
 
+  // جلب جميع المطاعم
   const { data: restaurantsData } = useQuery<{restaurants: Restaurant[]}>({
     queryKey: ['/api/admin/restaurants'],
   });
 
   const restaurants = restaurantsData?.restaurants || [];
 
-  // Set first restaurant as default when restaurants load
+  // تعيين أول مطعم كافتراضي عند تحميل المطاعم
   useEffect(() => {
     if (restaurants && restaurants.length > 0 && !selectedRestaurant) {
       setSelectedRestaurant(restaurants[0].id);
     }
   }, [restaurants, selectedRestaurant]);
 
+  // جلب الوجبات الخاصة بالمطعم المحدد
   const { data: menuItems, isLoading } = useQuery<MenuItem[]>({
     queryKey: ['/api/admin/menu-items', selectedRestaurant],
+    queryFn: async () => {
+      if (!selectedRestaurant) return [];
+      
+      const response = await apiRequest('GET', `/api/admin/menu-items?restaurantId=${selectedRestaurant}`);
+      if (!response.ok) {
+        throw new Error('فشل في جلب الوجبات');
+      }
+      return response.json();
+    },
     enabled: !!selectedRestaurant,
   });
 
   const createMenuItemMutation = useMutation({
     mutationFn: async (data: typeof formData) => {
-      // Validate required fields
+      // التحقق من الحقول المطلوبة
       if (!data.name.trim()) {
         throw new Error('اسم الوجبة مطلوب');
       }
@@ -71,7 +82,7 @@ export default function AdminMenuItems() {
         throw new Error('يجب اختيار مطعم');
       }
 
-      // Parse and validate numbers
+      // تحقق من الأرقام
       const price = parseFloat(data.price);
       if (isNaN(price) || price <= 0) {
         throw new Error('سعر الوجبة يجب أن يكون رقم صحيح أكبر من صفر');
@@ -91,7 +102,7 @@ export default function AdminMenuItems() {
         description: data.description.trim(),
         image: data.image.trim(),
         category: data.category.trim(),
-        price: price.toString(), // Send as string to match decimal type
+        price: price.toString(),
         originalPrice: originalPrice ? originalPrice.toString() : null,
       };
       
@@ -118,7 +129,7 @@ export default function AdminMenuItems() {
 
   const updateMenuItemMutation = useMutation({
     mutationFn: async ({ id, data }: { id: string; data: typeof formData }) => {
-      // Validate required fields
+      // التحقق من الحقول المطلوبة
       if (!data.name.trim()) {
         throw new Error('اسم الوجبة مطلوب');
       }
@@ -135,7 +146,7 @@ export default function AdminMenuItems() {
         throw new Error('يجب اختيار مطعم');
       }
 
-      // Parse and validate numbers
+      // تحقق من الأرقام
       const price = parseFloat(data.price);
       if (isNaN(price) || price <= 0) {
         throw new Error('سعر الوجبة يجب أن يكون رقم صحيح أكبر من صفر');
@@ -155,7 +166,7 @@ export default function AdminMenuItems() {
         description: data.description.trim(),
         image: data.image.trim(),
         category: data.category.trim(),
-        price: price.toString(), // Send as string to match decimal type
+        price: price.toString(),
         originalPrice: originalPrice ? originalPrice.toString() : null,
       };
       
@@ -221,7 +232,7 @@ export default function AdminMenuItems() {
       category: item.category,
       isAvailable: item.isAvailable,
       isSpecialOffer: item.isSpecialOffer,
-      restaurantId: item.restaurantId || '',
+      restaurantId: item.restaurantId || selectedRestaurant,
     });
     setIsDialogOpen(true);
   };
@@ -238,7 +249,7 @@ export default function AdminMenuItems() {
       return;
     }
 
-    // Validate price
+    // التحقق من السعر
     const price = parseFloat(formData.price);
     if (isNaN(price) || price <= 0) {
       toast({
@@ -249,7 +260,7 @@ export default function AdminMenuItems() {
       return;
     }
 
-    // Validate original price if provided
+    // التحقق من السعر الأصلي إذا تم إدخاله
     if (formData.originalPrice) {
       const originalPrice = parseFloat(formData.originalPrice);
       if (isNaN(originalPrice) || originalPrice <= 0) {
@@ -265,7 +276,6 @@ export default function AdminMenuItems() {
     const dataWithRestaurant = { 
       ...formData, 
       restaurantId: selectedRestaurant,
-      // Ensure originalPrice is a string or empty string 
       originalPrice: formData.originalPrice.trim() || ''
     };
 
@@ -288,7 +298,7 @@ export default function AdminMenuItems() {
         category: item.category,
         isAvailable: field === 'isAvailable' ? !item[field] : item.isAvailable,
         isSpecialOffer: field === 'isSpecialOffer' ? !item[field] : item.isSpecialOffer,
-        restaurantId: item.restaurantId || ''
+        restaurantId: item.restaurantId || selectedRestaurant
       }
     });
   };
@@ -545,7 +555,7 @@ export default function AdminMenuItems() {
                 </CardContent>
               </Card>
             ))
-          ) : menuItems?.length ? (
+          ) : menuItems && menuItems.length > 0 ? (
             menuItems.map((item) => (
               <Card key={item.id} className="hover:shadow-md transition-shadow overflow-hidden">
                 <div className="w-full h-48 bg-gradient-to-br from-primary/20 to-primary/5 flex items-center justify-center">
