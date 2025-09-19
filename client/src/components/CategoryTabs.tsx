@@ -14,10 +14,8 @@ export default function CategoryTabs({ selectedCategory, onCategoryChange }: Cat
   });
   const { isFeatureEnabled } = useUiSettings();
 
-  // لا تعرض المكون إذا كان معطل
-  if (!isFeatureEnabled('show_categories')) {
-    return null;
-  }
+  // التحقق من تفعيل خاصية عرض التصنيفات
+  const showCategories = isFeatureEnabled('show_categories');
 
   if (isLoading) {
     return (
@@ -41,7 +39,9 @@ export default function CategoryTabs({ selectedCategory, onCategoryChange }: Cat
           <i className="fas fa-th-large ml-2"></i>
           الكل
         </Button>
-        {categories?.map((category) => (
+        
+        {/* عرض التصنيفات فقط إذا كانت الميزة مفعلة */}
+        {showCategories && categories?.map((category) => (
           <Button
             key={category.id}
             variant={selectedCategory === category.id ? "default" : "secondary"}
@@ -53,6 +53,13 @@ export default function CategoryTabs({ selectedCategory, onCategoryChange }: Cat
             {category.name}
           </Button>
         ))}
+        
+        {/* إذا كانت الميزة معطلة، نعرض زر الكل فقط */}
+        {!showCategories && categories && categories.length > 0 && (
+          <div className="text-sm text-muted-foreground flex items-center px-3">
+            التصنيفات غير مفعلة حاليًا
+          </div>
+        )}
       </div>
     </section>
   );
