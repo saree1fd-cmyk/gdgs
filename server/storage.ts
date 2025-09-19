@@ -118,7 +118,9 @@ export interface IStorage {
   getOrderTracking(orderId: string): Promise<{id: string; orderId: string; status: string; message: string; createdBy: string; createdByType: string; createdAt: Date}[]>;
 
   // Search methods
+  searchRestaurants(query: string, category?: string): Promise<Restaurant[]>;
   searchCategories(query: string): Promise<Category[]>;
+  searchMenuItems(query: string): Promise<MenuItem[]>;
   searchMenuItemsAdvanced(query: string, filters?: any): Promise<MenuItem[]>;
 }
 
@@ -1040,10 +1042,36 @@ async updateRestaurant(id: string, restaurant: Partial<InsertRestaurant>): Promi
   }
 
   // Search methods
+  async searchRestaurants(query: string, category?: string): Promise<Restaurant[]> {
+    const searchTerm = query.toLowerCase();
+    return Array.from(this.restaurants.values())
+      .filter(restaurant => {
+        const matchesName = restaurant.name.toLowerCase().includes(searchTerm);
+        const matchesDescription = restaurant.description?.toLowerCase().includes(searchTerm);
+        const matchesCuisine = restaurant.cuisine.toLowerCase().includes(searchTerm);
+        const matchesArea = restaurant.area.toLowerCase().includes(searchTerm);
+        
+        const matchesQuery = matchesName || matchesDescription || matchesCuisine || matchesArea;
+        const matchesCategory = !category || restaurant.categoryId === category;
+        
+        return matchesQuery && matchesCategory;
+      });
+  }
+
   async searchCategories(query: string): Promise<Category[]> {
     const searchTerm = query.toLowerCase();
     return Array.from(this.categories.values())
       .filter(cat => cat.name.toLowerCase().includes(searchTerm));
+  }
+
+  async searchMenuItems(query: string): Promise<MenuItem[]> {
+    const searchTerm = query.toLowerCase();
+    return Array.from(this.menuItems.values())
+      .filter(item => 
+        item.name.toLowerCase().includes(searchTerm) ||
+        item.description?.toLowerCase().includes(searchTerm) ||
+        item.category.toLowerCase().includes(searchTerm)
+      );
   }
 
   async searchMenuItemsAdvanced(query: string, filters?: any): Promise<MenuItem[]> {
