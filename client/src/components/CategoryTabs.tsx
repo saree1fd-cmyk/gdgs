@@ -1,7 +1,6 @@
 import { Button } from '@/components/ui/button';
 import { useQuery } from '@tanstack/react-query';
 import type { Category } from '@shared/schema';
-import { useUiSettings } from '@/context/UiSettingsContext';
 
 interface CategoryTabsProps {
   selectedCategory: string | null;
@@ -12,10 +11,6 @@ export default function CategoryTabs({ selectedCategory, onCategoryChange }: Cat
   const { data: categories, isLoading } = useQuery<Category[]>({
     queryKey: ['/api/categories'],
   });
-  const { isFeatureEnabled } = useUiSettings();
-
-  // التحقق من تفعيل خاصية عرض التصنيفات
-  const showCategories = isFeatureEnabled('show_categories');
 
   if (isLoading) {
     return (
@@ -39,9 +34,7 @@ export default function CategoryTabs({ selectedCategory, onCategoryChange }: Cat
           <i className="fas fa-th-large ml-2"></i>
           الكل
         </Button>
-        
-        {/* عرض التصنيفات فقط إذا كانت الميزة مفعلة */}
-        {showCategories && categories?.map((category) => (
+        {categories?.map((category) => (
           <Button
             key={category.id}
             variant={selectedCategory === category.id ? "default" : "secondary"}
@@ -53,13 +46,6 @@ export default function CategoryTabs({ selectedCategory, onCategoryChange }: Cat
             {category.name}
           </Button>
         ))}
-        
-        {/* إذا كانت الميزة معطلة، نعرض زر الكل فقط */}
-        {!showCategories && categories && categories.length > 0 && (
-          <div className="text-sm text-muted-foreground flex items-center px-3">
-            التصنيفات غير مفعلة حاليًا
-          </div>
-        )}
       </div>
     </section>
   );
