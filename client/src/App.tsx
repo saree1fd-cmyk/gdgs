@@ -15,7 +15,7 @@ import { LoginPage } from "./pages/LoginPage";
 import AdminLoginPage from "./pages/admin/AdminLoginPage";
 import DriverLoginPage from "./pages/driver/DriverLoginPage";
 import AdminApp from "./pages/AdminApp";
-import { Delivery } from "./pages/Delivery";
+import { DriverDashboard } from "./pages/DriverDashboard";
 import { useState } from "react";
 import Home from "./pages/Home";
 import Restaurant from "./pages/Restaurant";
