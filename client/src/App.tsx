@@ -5,13 +5,15 @@ import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { CartProvider } from "./contexts/CartContext";
 import { ThemeProvider } from "./context/ThemeContext";
-// import { AuthProvider, useAuth } from "./context/AuthContext"; // تم حذف نظام المصادقة
+import { AuthProvider, useAuth } from "./context/AuthContext";
 import { LocationProvider, useLocation } from "./context/LocationContext";
-import { UiSettingsProvider } from "./context/UiSettingsContext";
+import { UiSettingsProvider, useUiSettings } from "./context/UiSettingsContext";
 import { NotificationProvider } from "./context/NotificationContext";
 import { LocationPermissionModal } from "./components/LocationPermissionModal";
 import Layout from "./components/Layout";
-// import { LoginPage } from "./pages/LoginPage"; // تم حذف صفحات تسجيل الدخول
+import { LoginPage } from "./pages/LoginPage";
+import AdminLoginPage from "./pages/admin/AdminLoginPage";
+import DriverLoginPage from "./pages/driver/DriverLoginPage";
 import AdminApp from "./pages/AdminApp";
 import { DriverDashboard } from "./pages/DriverDashboard";
 import { useState } from "react";
@@ -35,6 +37,15 @@ function MainApp() {
   const [showLocationModal, setShowLocationModal] = useState(true);
 
   // تم إزالة loading state ومراجع المصادقة
+
+  // Handle login pages first (without layout)
+  if (window.location.pathname === '/admin-login') {
+    return <AdminLoginPage />;
+  }
+  
+  if (window.location.pathname === '/driver-login') {
+    return <DriverLoginPage />;
+  }
 
   // Handle admin routes (direct access without authentication)
   if (window.location.pathname.startsWith('/admin')) {
@@ -72,9 +83,10 @@ function MainApp() {
 }
 
 function Router() {
-  // Check localStorage settings for page visibility
-  const showOrdersPage = localStorage.getItem('show_orders_page') !== 'false';
-  const showTrackOrdersPage = localStorage.getItem('show_track_orders_page') !== 'false';
+  // Check UiSettings for page visibility
+  const { isFeatureEnabled } = useUiSettings();
+  const showOrdersPage = isFeatureEnabled('show_orders_page');
+  const showTrackOrdersPage = isFeatureEnabled('show_track_orders_page');
 
   return (
     <Switch>
@@ -89,6 +101,11 @@ function Router() {
       {showTrackOrdersPage && <Route path="/track-orders" component={TrackOrdersPage} />}
       <Route path="/settings" component={Settings} />
       <Route path="/privacy" component={Privacy} />
+      
+      {/* Authentication Routes */}
+      <Route path="/admin-login" component={AdminLoginPage} />
+      <Route path="/driver-login" component={DriverLoginPage} />
+      
       <Route component={NotFound} />
     </Switch>
   );
@@ -99,16 +116,18 @@ function App() {
     <QueryClientProvider client={queryClient}>
       <TooltipProvider>
         <ThemeProvider>
-          <UiSettingsProvider>
-            <LocationProvider>
-              <CartProvider>
-                <NotificationProvider>
-                  <Toaster />
-                  <MainApp />
-                </NotificationProvider>
-              </CartProvider>
-            </LocationProvider>
-          </UiSettingsProvider>
+          <AuthProvider>
+            <UiSettingsProvider>
+              <LocationProvider>
+                <CartProvider>
+                  <NotificationProvider>
+                    <Toaster />
+                    <MainApp />
+                  </NotificationProvider>
+                </CartProvider>
+              </LocationProvider>
+            </UiSettingsProvider>
+          </AuthProvider>
         </ThemeProvider>
       </TooltipProvider>
     </QueryClientProvider>

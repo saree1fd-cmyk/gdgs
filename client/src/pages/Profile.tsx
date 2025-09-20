@@ -9,15 +9,17 @@ import { Badge } from '@/components/ui/badge';
 import { useToast } from '@/hooks/use-toast';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { apiRequest } from '@/lib/queryClient';
+import { useAuth } from '@/context/AuthContext';
 import type { User as UserType } from '@shared/schema';
 
 export default function Profile() {
   const [, setLocation] = useLocation();
   const { toast } = useToast();
   const queryClient = useQueryClient();
+  const { user: currentUser, isAuthenticated, loading: authLoading } = useAuth();
   
-  // For now, we'll use a demo user ID. In a real app, this would come from authentication
-  const userId = '5ea1edd8-b9e1-4c9e-84fb-25aa2741a0db';
+  // Use the actual logged-in user's ID
+  const userId = currentUser?.id;
   
   const [profile, setProfile] = useState({
     username: '',
@@ -29,15 +31,17 @@ export default function Profile() {
 
   const [isEditing, setIsEditing] = useState(false);
 
-  // Fetch user data
+  // Fetch user data only if authenticated and have userId
   const { data: user, isLoading } = useQuery({
     queryKey: ['/api/users', userId],
+    enabled: !!userId && isAuthenticated,
     retry: false,
   });
 
   // Update profile mutation
   const updateProfileMutation = useMutation({
     mutationFn: async (profileData: Partial<UserType>) => {
+      if (!userId) throw new Error('يجب تسجيل الدخول أولاً');
       const response = await apiRequest('PUT', `/api/users/${userId}`, profileData);
       return response.json();
     },
@@ -72,16 +76,21 @@ export default function Profile() {
   }, [user]);
 
   const handleSave = () => {
-    updateProfileMutation.mutate({
-      username: profile.username,
-      name: profile.name,
-      phone: profile.phone,
-      email: profile.email,
-      address: profile.address,
-    });
+    if (isGuestMode) {
+      handleGuestSave();
+    } else {
+      updateProfileMutation.mutate({
+        username: profile.username,
+        name: profile.name,
+        phone: profile.phone,
+        email: profile.email,
+        address: profile.address,
+      });
+    }
   };
 
-  if (isLoading) {
+  // Show loading if auth is loading or data is loading
+  if (authLoading || isLoading) {
     return (
       <div className="flex items-center justify-center min-h-screen">
         <div className="text-center">
@@ -91,6 +100,48 @@ export default function Profile() {
       </div>
     );
   }
+
+  // Use local storage for guest users
+  const isGuestMode = !isAuthenticated || !userId;
+
+  // Load profile from localStorage for guest users
+  useEffect(() => {
+    if (isGuestMode) {
+      const guestProfile = localStorage.getItem('guest_profile');
+      if (guestProfile) {
+        try {
+          const parsedProfile = JSON.parse(guestProfile);
+          setProfile(prev => ({ ...prev, ...parsedProfile }));
+        } catch (error) {
+          console.error('Error loading guest profile:', error);
+        }
+      }
+    }
+  }, [isGuestMode]);
+
+  // Save to localStorage for guest users
+  const handleGuestSave = () => {
+    try {
+      localStorage.setItem('guest_profile', JSON.stringify({
+        username: profile.username,
+        name: profile.name,
+        phone: profile.phone,
+        email: profile.email,
+        address: profile.address,
+      }));
+      setIsEditing(false);
+      toast({
+        title: "تم حفظ البيانات محلياً",
+        description: "تم حفظ معلوماتك محلياً. للحفظ الدائم، يمكنك تسجيل حساب جديد.",
+      });
+    } catch (error) {
+      toast({
+        title: "خطأ في الحفظ",
+        description: "حدث خطأ أثناء حفظ البيانات محلياً",
+        variant: "destructive",
+      });
+    }
+  };
 
   const profileStats = [
     { icon: Receipt, label: 'إجمالي الطلبات', value: '42', color: 'text-primary' },
@@ -130,8 +181,12 @@ export default function Profile() {
             <div className="w-20 h-20 bg-primary rounded-full flex items-center justify-center mx-auto mb-4">
               <User className="h-10 w-10 text-primary-foreground" />
             </div>
-            <CardTitle className="text-xl text-foreground">{profile.name || 'المستخدم'}</CardTitle>
-            <Badge variant="secondary" className="mx-auto">عضو مميز</Badge>
+            <CardTitle className="text-xl text-foreground">
+              {profile.name || (isGuestMode ? 'مستخدم ضيف' : 'المستخدم')}
+            </CardTitle>
+            <Badge variant={isGuestMode ? "outline" : "secondary"} className="mx-auto">
+              {isGuestMode ? 'مستخدم ضيف' : 'عضو مميز'}
+            </Badge>
           </CardHeader>
           <CardContent className="space-y-4">
             {isEditing ? (
@@ -186,10 +241,15 @@ export default function Profile() {
                   <Button 
                     onClick={handleSave} 
                     className="flex-1" 
-                    disabled={updateProfileMutation.isPending}
+                    disabled={!isGuestMode && updateProfileMutation.isPending}
                     data-testid="button-save-profile"
                   >
-                    {updateProfileMutation.isPending ? 'جاري الحفظ...' : 'حفظ التغييرات'}
+                    {!isGuestMode && updateProfileMutation.isPending 
+                      ? 'جاري الحفظ...' 
+                      : isGuestMode 
+                        ? 'حفظ محلياً'
+                        : 'حفظ التغييرات'
+                    }
                   </Button>
                   <Button 
                     variant="outline" 

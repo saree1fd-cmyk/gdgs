@@ -10,7 +10,7 @@ import { Loader2, Shield, Mail, Lock, Eye, EyeOff } from 'lucide-react';
 
 export default function AdminLoginPage() {
   const [, setLocation] = useLocation();
-  const { login, userType, loading, isAuthenticated } = useAuth();
+  const { login, user, loading, isAuthenticated } = useAuth();
   const [formData, setFormData] = useState({
     email: '',
     password: ''
@@ -21,10 +21,10 @@ export default function AdminLoginPage() {
 
   // إعادة توجيه إذا كان المستخدم مسجل دخول بالفعل
   useEffect(() => {
-    if (isAuthenticated && userType === 'admin') {
+    if (isAuthenticated && user?.userType === 'admin') {
       setLocation('/admin');
     }
-  }, [isAuthenticated, userType, setLocation]);
+  }, [isAuthenticated, user, setLocation]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
