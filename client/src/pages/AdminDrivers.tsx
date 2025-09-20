@@ -1,3 +1,5 @@
+[file name]: AdminDrivers.tsx
+[file content begin]
 import { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { Plus, Edit, Trash2, Truck, Save, X, Phone, MapPin, DollarSign, User } from 'lucide-react';
@@ -22,7 +24,7 @@ export default function AdminDrivers() {
   const [formData, setFormData] = useState({
     name: '',
     phone: '',
-    password: '',
+    password: 'password', // كلمة مرور افتراضية
     currentLocation: '',
     isAvailable: true,
     isActive: true,
@@ -46,6 +48,13 @@ export default function AdminDrivers() {
       resetForm();
       setIsDialogOpen(false);
     },
+    onError: (error: any) => {
+      toast({
+        title: "خطأ",
+        description: error.message || "فشل في إضافة السائق",
+        variant: "destructive",
+      });
+    },
   });
 
   const updateDriverMutation = useMutation({
@@ -63,6 +72,13 @@ export default function AdminDrivers() {
       setEditingDriver(null);
       setIsDialogOpen(false);
     },
+    onError: (error: any) => {
+      toast({
+        title: "خطأ",
+        description: error.message || "فشل في تحديث السائق",
+        variant: "destructive",
+      });
+    },
   });
 
   const deleteDriverMutation = useMutation({
@@ -77,13 +93,20 @@ export default function AdminDrivers() {
         description: "تم حذف السائق بنجاح",
       });
     },
+    onError: (error: any) => {
+      toast({
+        title: "خطأ",
+        description: error.message || "فشل في حذف السائق",
+        variant: "destructive",
+      });
+    },
   });
 
   const resetForm = () => {
     setFormData({
       name: '',
       phone: '',
-      password: '',
+      password: 'password', // إعادة تعيين إلى كلمة المرور الافتراضية
       currentLocation: '',
       isAvailable: true,
       isActive: true,
@@ -96,7 +119,7 @@ export default function AdminDrivers() {
     setFormData({
       name: driver.name,
       phone: driver.phone,
-      password: '', // Don't show password
+      password: '', // لا تعرض كلمة المرور الحالية
       currentLocation: driver.currentLocation || '',
       isAvailable: driver.isAvailable,
       isActive: driver.isActive,
@@ -116,23 +139,23 @@ export default function AdminDrivers() {
       return;
     }
 
-    if (!editingDriver && !formData.password.trim()) {
-      toast({
-        title: "خطأ",
-        description: "يرجى إدخال كلمة المرور للسائق الجديد",
-        variant: "destructive",
-      });
-      return;
+    // بالنسبة للسائق الجديد، استخدم كلمة المرور الافتراضية إذا لم يتم إدخالها
+    const submitData = { ...formData };
+    if (!editingDriver && !submitData.password.trim()) {
+      submitData.password = 'password'; // كلمة مرور افتراضية
     }
 
-    const submitData = editingDriver && !formData.password.trim() 
-      ? { ...formData, password: undefined } 
-      : formData;
+    // بالنسبة للتعديل، إذا لم يتم تغيير كلمة المرور، لا ترسلها
+    const dataToSend = editingDriver 
+      ? submitData.password 
+        ? submitData 
+        : { ...submitData, password: undefined }
+      : submitData;
 
     if (editingDriver) {
-      updateDriverMutation.mutate({ id: editingDriver.id, data: submitData });
+      updateDriverMutation.mutate({ id: editingDriver.id, data: dataToSend });
     } else {
-      createDriverMutation.mutate(formData);
+      createDriverMutation.mutate(dataToSend as typeof formData);
     }
   };
 
@@ -214,6 +237,11 @@ export default function AdminDrivers() {
                   required={!editingDriver}
                   data-testid="input-driver-password"
                 />
+                {!editingDriver && (
+                  <p className="text-xs text-muted-foreground mt-1">
+                    كلمة المرور الافتراضية: password
+                  </p>
+                )}
               </div>
 
               <div>
@@ -415,3 +443,4 @@ export default function AdminDrivers() {
     </div>
   );
 }
+[file content end]
