@@ -29,16 +29,16 @@ export default function AdminDrivers() {
   });
 
   const { data: drivers, isLoading } = useQuery<Driver[]>({
-    queryKey: ['/api/admin/drivers'],
+    queryKey: ['/api/drivers'],
   });
 
   const createDriverMutation = useMutation({
     mutationFn: async (data: typeof formData) => {
-      const response = await apiRequest('POST', '/api/admin/drivers', data);
+      const response = await apiRequest('POST', '/api/drivers', data);
       return response.json();
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['/api/admin/drivers'] });
+      queryClient.invalidateQueries({ queryKey: ['/api/drivers'] });
       toast({
         title: "تم إضافة السائق",
         description: "تم إضافة السائق الجديد بنجاح",
@@ -46,22 +46,15 @@ export default function AdminDrivers() {
       resetForm();
       setIsDialogOpen(false);
     },
-    onError: (error: any) => {
-      toast({
-        title: "خطأ في إضافة السائق",
-        description: error.message || "حدث خطأ أثناء إضافة السائق",
-        variant: "destructive",
-      });
-    },
   });
 
   const updateDriverMutation = useMutation({
     mutationFn: async ({ id, data }: { id: string; data: Partial<typeof formData> }) => {
-      const response = await apiRequest('PUT', `/api/admin/drivers/${id}`, data);
+      const response = await apiRequest('PUT', `/api/drivers/${id}`, data);
       return response.json();
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['/api/admin/drivers'] });
+      queryClient.invalidateQueries({ queryKey: ['/api/drivers'] });
       toast({
         title: "تم تحديث السائق",
         description: "تم تحديث بيانات السائق بنجاح",
@@ -70,32 +63,18 @@ export default function AdminDrivers() {
       setEditingDriver(null);
       setIsDialogOpen(false);
     },
-    onError: (error: any) => {
-      toast({
-        title: "خطأ في تحديث السائق",
-        description: error.message || "حدث خطأ أثناء تحديث السائق",
-        variant: "destructive",
-      });
-    },
   });
 
   const deleteDriverMutation = useMutation({
     mutationFn: async (id: string) => {
-      const response = await apiRequest('DELETE', `/api/admin/drivers/${id}`);
+      const response = await apiRequest('DELETE', `/api/drivers/${id}`);
       return response.json();
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['/api/admin/drivers'] });
+      queryClient.invalidateQueries({ queryKey: ['/api/drivers'] });
       toast({
         title: "تم حذف السائق",
         description: "تم حذف السائق بنجاح",
-      });
-    },
-    onError: (error: any) => {
-      toast({
-        title: "خطأ في حذف السائق",
-        description: error.message || "حدث خطأ أثناء حذف السائق",
-        variant: "destructive",
       });
     },
   });
@@ -137,7 +116,6 @@ export default function AdminDrivers() {
       return;
     }
 
-    // تأكد من وجود كلمة مرور عند إنشاء سائق جديد
     if (!editingDriver && !formData.password.trim()) {
       toast({
         title: "خطأ",
@@ -147,17 +125,14 @@ export default function AdminDrivers() {
       return;
     }
 
-    // عند التحديث، إذا لم يتم تغيير كلمة المرور، لا ترسلها
-    const submitData = { ...formData };
-    
-    if (editingDriver && !formData.password.trim()) {
-      delete submitData.password;
-    }
+    const submitData = editingDriver && !formData.password.trim() 
+      ? { ...formData, password: undefined } 
+      : formData;
 
     if (editingDriver) {
       updateDriverMutation.mutate({ id: editingDriver.id, data: submitData });
     } else {
-      createDriverMutation.mutate(submitData);
+      createDriverMutation.mutate(formData);
     }
   };
 
