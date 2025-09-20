@@ -92,6 +92,7 @@ export const drivers = pgTable("drivers", {
   username: varchar("username", { length: 50 }).unique(),
   email: varchar("email", { length: 100 }).unique(),
   phone: varchar("phone", { length: 20 }).notNull().unique(),
+  password: text("password").notNull(), // إضافة حقل كلمة المرور
   userType: varchar("user_type", { length: 50 }).default("driver").notNull(),
   isAvailable: boolean("is_available").default(true).notNull(),
   isActive: boolean("is_active").default(true).notNull(),

@@ -326,6 +326,7 @@ export class MemStorage implements IStorage {
         username: "ahmed_driver",
         email: "ahmed@drivers.com",
         phone: "+967771234567",
+        password: "123456", // كلمة مرور افتراضية للاختبار
         userType: "driver",
         isAvailable: true,
         isActive: true,
@@ -339,6 +340,7 @@ export class MemStorage implements IStorage {
         username: "ali_driver",
         email: "ali@drivers.com",
         phone: "+967779876543",
+        password: "123456", // كلمة مرور افتراضية للاختبار
         userType: "driver",
         isAvailable: true,
         isActive: true,
@@ -698,7 +700,8 @@ async updateRestaurant(id: string, restaurant: Partial<InsertRestaurant>): Promi
       earnings: driver.earnings?.toString() ?? "0",
       username: driver.username ?? null,
       email: driver.email ?? null,
-      userType: driver.userType ?? "driver"
+      userType: driver.userType ?? "driver",
+      password: driver.password // إضافة حقل كلمة المرور
     };
     this.drivers.set(id, newDriver);
     return newDriver;
@@ -1048,10 +1051,9 @@ async updateRestaurant(id: string, restaurant: Partial<InsertRestaurant>): Promi
       .filter(restaurant => {
         const matchesName = restaurant.name.toLowerCase().includes(searchTerm);
         const matchesDescription = restaurant.description?.toLowerCase().includes(searchTerm);
-        const matchesCuisine = restaurant.cuisine.toLowerCase().includes(searchTerm);
-        const matchesArea = restaurant.area.toLowerCase().includes(searchTerm);
+        // إزالة cuisine و area مؤقتاً حتى يتم إضافتهما للـ schema
         
-        const matchesQuery = matchesName || matchesDescription || matchesCuisine || matchesArea;
+        const matchesQuery = matchesName || matchesDescription;
         const matchesCategory = !category || restaurant.categoryId === category;
         
         return matchesQuery && matchesCategory;
