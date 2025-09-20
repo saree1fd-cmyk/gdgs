@@ -50,11 +50,11 @@ export default function AdminMenuItems() {
 
   // جلب الوجبات الخاصة بالمطعم المحدد
   const { data: menuItems, isLoading } = useQuery<MenuItem[]>({
-    queryKey: ['/api/admin/menu-items', selectedRestaurant],
+    queryKey: ['/api/admin/restaurants', selectedRestaurant, 'menu'],
     queryFn: async () => {
       if (!selectedRestaurant) return [];
       
-      const response = await apiRequest('GET', `/api/admin/menu-items?restaurantId=${selectedRestaurant}`);
+      const response = await apiRequest('GET', `/api/admin/restaurants/${selectedRestaurant}/menu`);
       if (!response.ok) {
         throw new Error('فشل في جلب الوجبات');
       }
@@ -110,7 +110,7 @@ export default function AdminMenuItems() {
       return response.json();
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['/api/admin/menu-items', selectedRestaurant] });
+      queryClient.invalidateQueries({ queryKey: ['/api/admin/restaurants', selectedRestaurant, 'menu'] });
       toast({
         title: "تم إضافة الوجبة",
         description: "تم إضافة الوجبة الجديدة بنجاح",
@@ -174,7 +174,7 @@ export default function AdminMenuItems() {
       return response.json();
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['/api/admin/menu-items', selectedRestaurant] });
+      queryClient.invalidateQueries({ queryKey: ['/api/admin/restaurants', selectedRestaurant, 'menu'] });
       toast({
         title: "تم تحديث الوجبة",
         description: "تم تحديث الوجبة بنجاح",
@@ -198,7 +198,7 @@ export default function AdminMenuItems() {
       return response.json();
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['/api/admin/menu-items', selectedRestaurant] });
+      queryClient.invalidateQueries({ queryKey: ['/api/admin/restaurants', selectedRestaurant, 'menu'] });
       toast({
         title: "تم حذف الوجبة",
         description: "تم حذف الوجبة بنجاح",

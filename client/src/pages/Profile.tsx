@@ -20,6 +20,7 @@ export default function Profile() {
   const userId = '5ea1edd8-b9e1-4c9e-84fb-25aa2741a0db';
   
   const [profile, setProfile] = useState({
+    username: '',
     name: '',
     phone: '',
     email: '',
@@ -61,6 +62,7 @@ export default function Profile() {
   useEffect(() => {
     if (user) {
       setProfile({
+        username: (user as UserType).username || '',
         name: (user as UserType).name || '',
         phone: (user as UserType).phone || '',
         email: (user as UserType).email || '',
@@ -71,6 +73,7 @@ export default function Profile() {
 
   const handleSave = () => {
     updateProfileMutation.mutate({
+      username: profile.username,
       name: profile.name,
       phone: profile.phone,
       email: profile.email,
@@ -143,6 +146,15 @@ export default function Profile() {
                   />
                 </div>
                 <div>
+                  <Label htmlFor="username" className="text-foreground">اسم المستخدم</Label>
+                  <Input
+                    id="username"
+                    value={profile.username}
+                    onChange={(e) => setProfile(prev => ({ ...prev, username: e.target.value }))}
+                    data-testid="input-profile-username"
+                  />
+                </div>
+                <div>
                   <Label htmlFor="phone" className="text-foreground">رقم الهاتف</Label>
                   <Input
                     id="phone"
@@ -190,6 +202,10 @@ export default function Profile() {
               </div>
             ) : (
               <div className="space-y-3">
+                <div className="flex items-center gap-3 p-3 bg-muted rounded-lg">
+                  <User className="h-5 w-5 text-muted-foreground" />
+                  <span className="text-foreground" data-testid="profile-username">{profile.username}</span>
+                </div>
                 <div className="flex items-center gap-3 p-3 bg-muted rounded-lg">
                   <Phone className="h-5 w-5 text-muted-foreground" />
                   <span className="text-foreground" data-testid="profile-phone">{profile.phone}</span>

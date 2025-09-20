@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useParams, useLocation } from 'wouter';
 import { useQuery } from '@tanstack/react-query';
 import { ArrowRight, Star, Clock, AlertTriangle } from 'lucide-react';
@@ -12,7 +12,7 @@ import { getRestaurantStatus, canOrderFromRestaurant } from '../utils/restaurant
 export default function Restaurant() {
   const { id } = useParams<{ id: string }>();
   const [, setLocation] = useLocation();
-  const [selectedMenuCategory, setSelectedMenuCategory] = useState('وجبات رمضان');
+  const [selectedMenuCategory, setSelectedMenuCategory] = useState<string | null>(null);
 
   const { data: restaurant, isLoading: restaurantLoading } = useQuery<Restaurant>({
     queryKey: ['/api/restaurants', id],
@@ -25,6 +25,14 @@ export default function Restaurant() {
 const menuCategories = menuItems 
   ? Array.from(new Set(menuItems.map(item => item.category))) 
   : [];
+  
+  // Auto-select first category when menu items load
+  useEffect(() => {
+    if (menuItems && menuCategories.length > 0 && !selectedMenuCategory) {
+      setSelectedMenuCategory(menuCategories[0]);
+    }
+  }, [menuItems, menuCategories, selectedMenuCategory]);
+  
   const filteredMenuItems = menuItems?.filter(item => item.category === selectedMenuCategory) || [];
 
   if (restaurantLoading) {

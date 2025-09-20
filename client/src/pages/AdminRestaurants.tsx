@@ -45,9 +45,11 @@ export default function AdminRestaurants() {
     isActive: true,
   });
 
-  const { data: restaurants, isLoading: restaurantsLoading } = useQuery<Restaurant[]>({
+  const { data: restaurantsData, isLoading: restaurantsLoading } = useQuery<{restaurants: Restaurant[], pagination: any}>({
     queryKey: ['/api/admin/restaurants'],
   });
+
+  const restaurants = restaurantsData?.restaurants || [];
 
   const { data: categories } = useQuery<Category[]>({
     queryKey: ['/api/admin/categories'],
