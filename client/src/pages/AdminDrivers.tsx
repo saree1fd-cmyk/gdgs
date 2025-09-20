@@ -46,6 +46,13 @@ export default function AdminDrivers() {
       resetForm();
       setIsDialogOpen(false);
     },
+    onError: (error: any) => {
+      toast({
+        title: "خطأ في إضافة السائق",
+        description: error.message || "حدث خطأ أثناء إضافة السائق",
+        variant: "destructive",
+      });
+    },
   });
 
   const updateDriverMutation = useMutation({
@@ -63,6 +70,13 @@ export default function AdminDrivers() {
       setEditingDriver(null);
       setIsDialogOpen(false);
     },
+    onError: (error: any) => {
+      toast({
+        title: "خطأ في تحديث السائق",
+        description: error.message || "حدث خطأ أثناء تحديث السائق",
+        variant: "destructive",
+      });
+    },
   });
 
   const deleteDriverMutation = useMutation({
@@ -75,6 +89,13 @@ export default function AdminDrivers() {
       toast({
         title: "تم حذف السائق",
         description: "تم حذف السائق بنجاح",
+      });
+    },
+    onError: (error: any) => {
+      toast({
+        title: "خطأ في حذف السائق",
+        description: error.message || "حدث خطأ أثناء حذف السائق",
+        variant: "destructive",
       });
     },
   });
@@ -116,6 +137,7 @@ export default function AdminDrivers() {
       return;
     }
 
+    // تأكد من وجود كلمة مرور عند إنشاء سائق جديد
     if (!editingDriver && !formData.password.trim()) {
       toast({
         title: "خطأ",
@@ -125,14 +147,17 @@ export default function AdminDrivers() {
       return;
     }
 
-    const submitData = editingDriver && !formData.password.trim() 
-      ? { ...formData, password: undefined } 
-      : formData;
+    // عند التحديث، إذا لم يتم تغيير كلمة المرور، لا ترسلها
+    const submitData = { ...formData };
+    
+    if (editingDriver && !formData.password.trim()) {
+      delete submitData.password;
+    }
 
     if (editingDriver) {
       updateDriverMutation.mutate({ id: editingDriver.id, data: submitData });
     } else {
-      createDriverMutation.mutate(formData);
+      createDriverMutation.mutate(submitData);
     }
   };
 
