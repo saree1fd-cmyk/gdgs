@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { Minus, Plus, Trash2, ShoppingBag, X } from 'lucide-react';
 import { useCart } from '../contexts/CartContext';
 import { MapPicker } from './MapPicker';
+import { apiRequest } from '@/lib/queryClient';
 
 interface LocationData {
   lat: number;
@@ -27,6 +28,24 @@ export function Cart({ isOpen, onClose }: CartProps) {
   });
 
   if (!isOpen) return null;
+
+  // Function to save customer info to user profile
+  const saveCustomerInfoToProfile = async () => {
+    try {
+      // For now, we'll use the same demo user ID as in Profile component
+      const userId = '5ea1edd8-b9e1-4c9e-84fb-25aa2741a0db';
+      
+      // Update user profile with delivery info
+      await apiRequest('PUT', `/api/users/${userId}`, {
+        name: customerInfo.name,
+        phone: customerInfo.phone,
+        address: selectedLocation?.address,
+      });
+    } catch (error) {
+      console.error('Failed to save customer info to profile:', error);
+      // Don't show error to user as this is a background operation
+    }
+  };
 
   const handleCheckout = async () => {
     if (!selectedLocation) {
@@ -63,6 +82,10 @@ export function Cart({ isOpen, onClose }: CartProps) {
 
       if (response.ok) {
         const order = await response.json();
+        
+        // Save customer info to profile after successful order
+        await saveCustomerInfoToProfile();
+        
         alert(`تم تأكيد طلبك! رقم الطلب: ${order.orderNumber}`);
         clearCart();
         onClose();
