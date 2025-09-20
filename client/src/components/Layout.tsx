@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { useLocation } from 'wouter';
 import { Home, Search, Receipt, User, Menu, Settings, Shield, MapPin, Clock, Truck, UserCog, ShoppingCart } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -6,6 +6,7 @@ import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from '@/co
 import { useCart } from '../contexts/CartContext';
 import CartButton from './CartButton';
 import { useToast } from '@/hooks/use-toast';
+import { useUiSettings } from '@/context/UiSettingsContext';
 
 interface LayoutProps {
   children: React.ReactNode;
@@ -18,47 +19,17 @@ export default function Layout({ children }: LayoutProps) {
   const getItemCount = () => state.items.reduce((sum, item) => sum + item.quantity, 0);
   const { toast } = useToast();
   const [sidebarOpen, setSidebarOpen] = useState(false);
-  const [logoClickCount, setLogoClickCount] = useState(0);
+  const { isFeatureEnabled } = useUiSettings();
   
   
-  // States for admin panel and delivery app visibility
-  const [showAdminPanel, setShowAdminPanel] = useState(true);
-  const [showDeliveryApp, setShowDeliveryApp] = useState(true);
-  const [showOrdersPage, setShowOrdersPage] = useState(true);
-  const [showTrackOrdersPage, setShowTrackOrdersPage] = useState(true);
-  
-  // Load visibility settings from localStorage
-  useEffect(() => {
-    const adminPanelVisible = localStorage.getItem('show_admin_panel') !== 'false';
-    const deliveryAppVisible = localStorage.getItem('show_delivery_app') !== 'false';
-    const ordersPageVisible = localStorage.getItem('show_orders_page') !== 'false';
-    const trackOrdersPageVisible = localStorage.getItem('show_track_orders_page') !== 'false';
-    setShowAdminPanel(adminPanelVisible);
-    setShowDeliveryApp(deliveryAppVisible);
-    setShowOrdersPage(ordersPageVisible);
-    setShowTrackOrdersPage(trackOrdersPageVisible);
-  }, []);
+  // Get visibility settings from UiSettings instead of localStorage
+  const showAdminPanel = isFeatureEnabled('show_admin_panel');
+  const showDeliveryApp = isFeatureEnabled('show_delivery_app'); 
+  const showOrdersPage = isFeatureEnabled('show_orders_page');
+  const showTrackOrdersPage = isFeatureEnabled('show_track_orders_page');
 
-  // Listen for navigation settings changes from admin panel
-  useEffect(() => {
-    const handleNavigationChange = (event: CustomEvent) => {
-      const { key, enabled } = event.detail;
-      if (key === 'show_admin_panel') {
-        setShowAdminPanel(enabled);
-      } else if (key === 'show_delivery_app') {
-        setShowDeliveryApp(enabled);
-      } else if (key === 'show_orders_page') {
-        setShowOrdersPage(enabled);
-      } else if (key === 'show_track_orders_page') {
-        setShowTrackOrdersPage(enabled);
-      }
-    };
-
-    window.addEventListener('navigationSettingsChanged', handleNavigationChange as EventListener);
-    return () => {
-      window.removeEventListener('navigationSettingsChanged', handleNavigationChange as EventListener);
-    };
-  }, []);
+  // Settings are now handled automatically by UiSettings context
+  // No need for manual event listeners
 
   const isAdminPage = location.startsWith('/admin');
   const isDeliveryPage = location.startsWith('/delivery');
@@ -208,41 +179,12 @@ export default function Layout({ children }: LayoutProps) {
           </div>
 
           {/* Center - Title and Location */}
-          <div className="text-center flex-1" 
-               onClick={() => {
-                const newCount = logoClickCount + 1;
-                setLogoClickCount(newCount);
-                
-                if (newCount === 4) {
-                  setLogoClickCount(0);
-                  window.location.href = '/admin';
-                } else if (newCount > 4) {
-                  setLogoClickCount(0);
-                }
-                
-                setTimeout(() => {
-                  setLogoClickCount(0);
-                }, 3000);
-              }}
-          >
+          <div className="text-center flex-1">
             <h1 className="text-xl font-bold text-white">السريع ون</h1>
             <div className="flex items-center justify-center gap-1 text-sm text-white/90">
               <MapPin className="h-4 w-4" />
               <span> بخدمتك دايما</span>
             </div>
-            
-            {logoClickCount > 0 && logoClickCount < 4 && (
-              <div className="flex gap-1 justify-center mt-1">
-                {[...Array(4)].map((_, i) => (
-                  <div
-                    key={i}
-                    className={`w-1.5 h-1.5 rounded-full ${
-                      i < logoClickCount ? 'bg-white' : 'bg-white/30'
-                    }`}
-                  />
-                ))}
-              </div>
-            )}
           </div>
 
           {/* Left side - Cart icon */}
