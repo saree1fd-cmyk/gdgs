@@ -7,7 +7,7 @@ import {
   DialogDescription,
 } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
-import { MapPin, Navigation, Shield, Phone, Bell, Camera } from 'lucide-react';
+import { MapPin, Navigation, Shield } from 'lucide-react';
 
 interface LocationPermissionModalProps {
   onPermissionGranted: (position: GeolocationPosition) => void;
@@ -17,47 +17,10 @@ interface LocationPermissionModalProps {
 export function LocationPermissionModal({ onPermissionGranted, onPermissionDenied }: LocationPermissionModalProps) {
   const [isOpen, setIsOpen] = useState(false);
   const [permissionStatus, setPermissionStatus] = useState<'unknown' | 'granted' | 'denied'>('unknown');
-  const [currentStep, setCurrentStep] = useState(0);
-  const [grantedPermissions, setGrantedPermissions] = useState<string[]>([]);
 
   useEffect(() => {
     checkPermissionStatus();
   }, []);
-
-  const permissions = [
-    {
-      id: 'location',
-      icon: MapPin,
-      title: 'الوصول للموقع',
-      description: 'لتحديد موقعك وعرض المطاعم القريبة وتوصيل الطلبات بدقة',
-      required: true,
-      requestFunction: requestLocationPermission
-    },
-    {
-      id: 'notifications',
-      icon: Bell,
-      title: 'الإشعارات',
-      description: 'لإرسال تحديثات الطلب والعروض الخاصة',
-      required: true,
-      requestFunction: requestNotificationPermission
-    },
-    {
-      id: 'phone',
-      icon: Phone,
-      title: 'الاتصال الهاتفي',
-      description: 'للتواصل مع المطعم والمندوب عند الحاجة',
-      required: false,
-      requestFunction: () => Promise.resolve(true)
-    },
-    {
-      id: 'camera',
-      icon: Camera,
-      title: 'الكاميرا',
-      description: 'لرفع صور من الطلبات أو المشاكل (اختياري)',
-      required: false,
-      requestFunction: requestCameraPermission
-    }
-  ];
 
   const checkPermissionStatus = async () => {
     if ('permissions' in navigator) {
@@ -79,57 +42,6 @@ export function LocationPermissionModal({ onPermissionGranted, onPermissionDenie
       }
     } else {
       setIsOpen(true);
-    }
-  };
-
-  const requestLocationPermission = async (): Promise<boolean> => {
-    return new Promise((resolve) => {
-      if ('geolocation' in navigator) {
-        navigator.geolocation.getCurrentPosition(
-          (position) => {
-            onPermissionGranted(position);
-            resolve(true);
-          },
-          (error) => {
-            console.error('Error getting location:', error);
-            resolve(false);
-          },
-          {
-            enableHighAccuracy: true,
-            timeout: 10000,
-            maximumAge: 60000
-          }
-        );
-      } else {
-        resolve(false);
-      }
-    });
-  };
-
-  const requestNotificationPermission = async (): Promise<boolean> => {
-    try {
-      if (!('Notification' in window)) {
-        return false;
-      }
-      if (Notification.permission === 'granted') {
-        return true;
-      }
-      const permission = await Notification.requestPermission();
-      return permission === 'granted';
-    } catch (error) {
-      console.error('Notification error:', error);
-      return false;
-    }
-  };
-
-  const requestCameraPermission = async (): Promise<boolean> => {
-    try {
-      const stream = await navigator.mediaDevices.getUserMedia({ video: true });
-      stream.getTracks().forEach(track => track.stop());
-      return true;
-    } catch (error) {
-      console.error('Camera error:', error);
-      return false;
     }
   };
 
@@ -156,105 +68,73 @@ export function LocationPermissionModal({ onPermissionGranted, onPermissionDenie
     }
   };
 
-  const handlePermissionRequest = async (permission: any) => {
-    const granted = await permission.requestFunction();
-    if (granted) {
-      setGrantedPermissions(prev => [...prev, permission.id]);
-    }
-    
-    // الانتقال للصلاحية التالية أو إنهاء العملية
-    if (currentStep < permissions.length - 1) {
-      setCurrentStep(currentStep + 1);
-    } else {
-      // انتهاء جميع الصلاحيات
-      setIsOpen(false);
-    }
+  const requestLocationPermission = () => {
+    getCurrentLocation();
   };
 
-  const handleSkipPermission = () => {
-    if (currentStep < permissions.length - 1) {
-      setCurrentStep(currentStep + 1);
-    } else {
-      setIsOpen(false);
-    }
-  };
-
-  const handleSkipAll = () => {
-    setIsOpen(false);
+  const handleDenyPermission = () => {
+    setPermissionStatus('denied');
     onPermissionDenied();
+    setIsOpen(false);
   };
-
-  const currentPermission = permissions[currentStep];
 
   return (
     <Dialog open={isOpen} onOpenChange={setIsOpen}>
       <DialogContent className="sm:max-w-md" dir="rtl">
         <DialogHeader className="text-center">
           <div className="mx-auto mb-4 flex h-12 w-12 items-center justify-center rounded-full bg-primary/10">
-            {currentPermission && <currentPermission.icon className="h-6 w-6 text-primary" />}
+            <MapPin className="h-6 w-6 text-primary" />
           </div>
           <DialogTitle className="text-xl font-bold">
-            {currentPermission?.title || 'صلاحيات التطبيق'}
+            السماح بالوصول للموقع
           </DialogTitle>
           <DialogDescription className="text-center text-muted-foreground">
-            عزيزي العميل، هذا التطبيق يحتاج للصلاحيات التالية لتوفير أفضل خدمة لك
+            نحتاج إلى معرفة موقعك لتوصيل طلباتك بدقة وعرض المطاعم القريبة منك
           </DialogDescription>
         </DialogHeader>
 
         <div className="space-y-4">
-          {/* Progress indicator */}
-          <div className="flex justify-center gap-2 mb-4">
-            {permissions.map((_, index) => (
-              <div
-                key={index}
-                className={`w-2 h-2 rounded-full ${
-                  index === currentStep ? 'bg-primary' : 
-                  index < currentStep ? 'bg-green-500' : 'bg-gray-300'
-                }`}
-              />
-            ))}
+          <div className="space-y-3">
+            <div className="flex items-center gap-3 p-3 rounded-lg bg-primary/5">
+              <Navigation className="h-5 w-5 text-primary flex-shrink-0" />
+              <div className="text-sm">
+                <div className="font-medium">تحديد موقعك بدقة</div>
+                <div className="text-muted-foreground">لضمان وصول الطلبات في الوقت المحدد</div>
+              </div>
+            </div>
+
+            <div className="flex items-center gap-3 p-3 rounded-lg bg-primary/5">
+              <MapPin className="h-5 w-5 text-primary flex-shrink-0" />
+              <div className="text-sm">
+                <div className="font-medium">عرض المطاعم القريبة</div>
+                <div className="text-muted-foreground">اكتشف أفضل المطاعم في منطقتك</div>
+              </div>
+            </div>
+
+            <div className="flex items-center gap-3 p-3 rounded-lg bg-primary/5">
+              <Shield className="h-5 w-5 text-primary flex-shrink-0" />
+              <div className="text-sm">
+                <div className="font-medium">حماية خصوصيتك</div>
+                <div className="text-muted-foreground">لن نشارك موقعك مع أطراف خارجية</div>
+              </div>
+            </div>
           </div>
 
-          {currentPermission && (
-            <div className="space-y-4">
-              <div className="flex items-center gap-3 p-4 rounded-lg bg-primary/5">
-                <currentPermission.icon className="h-6 w-6 text-primary flex-shrink-0" />
-                <div className="text-sm">
-                  <div className="font-medium">{currentPermission.title}</div>
-                  <div className="text-muted-foreground">{currentPermission.description}</div>
-                  {currentPermission.required && (
-                    <div className="text-xs text-red-600 mt-1">مطلوب للتطبيق</div>
-                  )}
-                </div>
-              </div>
-
-              <div className="flex gap-3">
-                <Button 
-                  variant="outline" 
-                  onClick={handleSkipPermission}
-                  className="flex-1"
-                >
-                  {currentPermission.required ? 'تخطي' : 'لاحقاً'}
-                </Button>
-                <Button 
-                  onClick={() => handlePermissionRequest(currentPermission)}
-                  className="flex-1"
-                >
-                  السماح
-                </Button>
-              </div>
-
-              {currentStep === 0 && (
-                <Button 
-                  variant="ghost" 
-                  onClick={handleSkipAll}
-                  className="w-full text-xs"
-                >
-                  تخطي جميع الصلاحيات
-                </Button>
-              )}
-            </div>
-          )}
+          <div className="flex gap-3">
+            <Button 
+              variant="outline" 
+              onClick={handleDenyPermission}
+              className="flex-1"
+            >
+              تخطي
+            </Button>
+            <Button 
+              onClick={requestLocationPermission}
+              className="flex-1"
+            >
+              السماح بالوصول
+            </Button>
+          </div>
         </div>
       </DialogContent>
     </Dialog>

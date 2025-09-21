@@ -104,7 +104,7 @@ export const AdminLayout: React.FC<AdminLayoutProps> = ({ children }) => {
   const currentPath = window.location.pathname;
 
   const SidebarContent = () => (
-    <div className="flex flex-col h-full bg-white overflow-y-auto">
+    <div className="flex flex-col h-full bg-white">
       {/* Header */}
       <div className="p-6 border-b bg-gradient-to-r from-blue-50 to-blue-100">
         <div className="flex items-center gap-3">
@@ -132,7 +132,7 @@ export const AdminLayout: React.FC<AdminLayoutProps> = ({ children }) => {
       </div>
 
       {/* Navigation */}
-      <nav className="flex-1 p-4 space-y-2 overflow-y-auto">
+      <nav className="flex-1 p-4 space-y-2">
         {menuItems.map((item) => {
           const Icon = item.icon;
           const isActive = currentPath === item.path;
@@ -141,7 +141,7 @@ export const AdminLayout: React.FC<AdminLayoutProps> = ({ children }) => {
             <button
               key={item.path}
               onClick={() => handleNavigation(item.path)}
-              className={`w-full flex items-center gap-3 px-3 py-2 rounded-lg text-right transition-all duration-200 group ${
+              className={`w-full flex items-center gap-3 px-4 py-3 rounded-lg text-right transition-all duration-200 group ${
                 isActive
                   ? 'bg-blue-500 text-white shadow-lg'
                   : 'text-gray-700 hover:bg-blue-50 hover:text-blue-600'
@@ -149,10 +149,10 @@ export const AdminLayout: React.FC<AdminLayoutProps> = ({ children }) => {
             >
               <Icon className={`h-5 w-5 ${isActive ? 'text-white' : 'text-gray-500 group-hover:text-blue-600'}`} />
               <div className="flex-1">
-                <p className={`font-medium text-sm ${isActive ? 'text-white' : 'text-gray-900'}`}>
+                <p className={`font-medium ${isActive ? 'text-white' : 'text-gray-900'}`}>
                   {item.label}
                 </p>
-                <p className={`text-xs ${isActive ? 'text-blue-100' : 'text-gray-500'} hidden sm:block`}>
+                <p className={`text-xs ${isActive ? 'text-blue-100' : 'text-gray-500'}`}>
                   {item.description}
                 </p>
               </div>
@@ -176,9 +176,9 @@ export const AdminLayout: React.FC<AdminLayoutProps> = ({ children }) => {
   );
 
   return (
-    <div className="min-h-screen bg-gray-50 flex flex-col lg:flex-row" dir="rtl">
+    <div className="min-h-screen bg-gray-50 flex" dir="rtl">
       {/* Desktop Sidebar */}
-      <div className="hidden lg:block w-80 bg-white shadow-lg flex-shrink-0">
+      <div className="hidden lg:block w-80 bg-white shadow-lg">
         <SidebarContent />
       </div>
 
@@ -192,7 +192,7 @@ export const AdminLayout: React.FC<AdminLayoutProps> = ({ children }) => {
       {/* Main Content */}
       <div className="flex-1 flex flex-col">
         {/* Mobile Header */}
-        <div className="lg:hidden bg-white border-b p-4 flex items-center justify-between sticky top-0 z-30">
+        <div className="lg:hidden bg-white border-b p-4 flex items-center justify-between">
           <div className="flex items-center gap-3">
             <div className="w-8 h-8 bg-gradient-to-br from-blue-500 to-blue-600 rounded-lg flex items-center justify-center">
               <BarChart3 className="h-5 w-5 text-white" />
@@ -218,7 +218,7 @@ export const AdminLayout: React.FC<AdminLayoutProps> = ({ children }) => {
         </div>
 
         {/* Page Content */}
-        <div className="flex-1 overflow-auto">
+        <div className="flex-1">
           {children}
         </div>
       </div>
