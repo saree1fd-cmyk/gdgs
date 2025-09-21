@@ -1,6 +1,7 @@
 import express from "express";
 import { storage } from "../storage";
-import bcrypt from 'bcryptjs';
+// تم حذف نظام المصادقة
+// تم حذف bcrypt - لا حاجة لتشفير كلمات المرور بعد إزالة نظام المصادقة
 import { z } from "zod";
 import { eq, and, desc, sql, or, like, asc, inArray } from "drizzle-orm";
 import {
@@ -617,17 +618,14 @@ router.post("/drivers", async (req, res) => {
       });
     }
     
-    // تشفير كلمة المرور
-    const hashedPassword = await bcrypt.hash(req.body.password, 10);
-    
     // التحقق من صحة البيانات مع الحقول المطلوبة
     const driverData = {
       ...req.body,
-      password: hashedPassword, // استخدام كلمة المرور المشفرة
       // التأكد من وجود الحقول الافتراضية
       isAvailable: req.body.isAvailable !== undefined ? req.body.isAvailable : true,
       isActive: req.body.isActive !== undefined ? req.body.isActive : true,
       earnings: req.body.earnings || "0",
+      userType: "driver",
       currentLocation: req.body.currentLocation || null
     };
     
@@ -653,14 +651,6 @@ router.post("/drivers", async (req, res) => {
 router.put("/drivers/:id", async (req, res) => {
   try {
     const { id } = req.params;
-    
-    // إذا تم تمرير كلمة مرور جديدة، قم بتشفيرها
-    if (req.body.password && req.body.password.trim()) {
-      req.body.password = await bcrypt.hash(req.body.password, 10);
-    } else {
-      // إزالة حقل كلمة المرور إذا كان فارغاً لتجنب تحديثه
-      delete req.body.password;
-    }
     
     // التحقق من صحة البيانات المحدثة (جزئي)
     const validatedData = insertDriverSchema.partial().parse(req.body);

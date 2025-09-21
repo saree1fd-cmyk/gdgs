@@ -50,16 +50,8 @@ router.post('/admin/login', async (req, res) => {
       });
     }
 
-    // التحقق من كلمة المرور (دعم التشفير والمقارنة المباشرة)
-    let isPasswordValid = false;
-    
-    // محاولة التحقق من كلمة المرور المشفرة أولاً
-    try {
-      isPasswordValid = await bcrypt.compare(password, admin.password);
-    } catch (error) {
-      // إذا فشل التشفير، جرب المقارنة المباشرة (للبيانات القديمة)
-      isPasswordValid = password === admin.password;
-    }
+    // التحقق من كلمة المرور (مقارنة مباشرة بدون تشفير)
+    const isPasswordValid = password === admin.password;
 
     if (!isPasswordValid) {
       return res.status(401).json({
@@ -80,8 +72,6 @@ router.post('/admin/login', async (req, res) => {
         id: admin.id,
         name: admin.name,
         email: admin.email,
-        username: admin.username,
-        phone: admin.phone,
         userType: 'admin'
       },
       message: 'تم تسجيل الدخول بنجاح'
@@ -134,16 +124,8 @@ router.post('/driver/login', async (req, res) => {
       });
     }
 
-    // التحقق من كلمة المرور (دعم التشفير والمقارنة المباشرة)
-    let isPasswordValid = false;
-    
-    // محاولة التحقق من كلمة المرور المشفرة أولاً
-    try {
-      isPasswordValid = await bcrypt.compare(password, driver.password);
-    } catch (error) {
-      // إذا فشل التشفير، جرب المقارنة المباشرة (للبيانات القديمة)
-      isPasswordValid = password === driver.password;
-    }
+    // التحقق من كلمة المرور (مقارنة مباشرة بدون تشفير)
+    const isPasswordValid = password === driver.password;
 
     if (!isPasswordValid) {
       return res.status(401).json({
@@ -164,10 +146,6 @@ router.post('/driver/login', async (req, res) => {
         id: driver.id,
         name: driver.name,
         phone: driver.phone,
-        isAvailable: driver.isAvailable,
-        isActive: driver.isActive,
-        currentLocation: driver.currentLocation,
-        earnings: driver.earnings,
         userType: 'driver'
       },
       message: 'تم تسجيل الدخول بنجاح'
