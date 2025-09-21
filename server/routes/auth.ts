@@ -51,7 +51,7 @@ router.post('/admin/login', async (req, res) => {
     }
 
     // التحقق من كلمة المرور (مقارنة مباشرة بدون تشفير)
-    const isPasswordValid = password === admin.password;
+    const isPasswordValid = await bcrypt.compare(password, admin.password);
 
     if (!isPasswordValid) {
       return res.status(401).json({
@@ -125,7 +125,7 @@ router.post('/driver/login', async (req, res) => {
     }
 
     // التحقق من كلمة المرور (مقارنة مباشرة بدون تشفير)
-    const isPasswordValid = password === driver.password;
+    const isPasswordValid = await bcrypt.compare(password, driver.password);
 
     if (!isPasswordValid) {
       return res.status(401).json({
