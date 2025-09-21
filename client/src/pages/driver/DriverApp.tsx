@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { MapPin, Phone, Clock, CheckCircle, Bell, Package, DollarSign, User, BarChart3, Navigation, LogOut } from 'lucide-react';
+import { MapPin, Phone, Clock, CheckCircle, Bell } from 'lucide-react';
 
 interface Order {
   id: string;
@@ -12,7 +12,6 @@ interface Order {
   status: string;
   items: string;
   createdAt: string;
-  deliveryFee?: string;
 }
 
 interface Driver {
@@ -21,10 +20,6 @@ interface Driver {
   phone: string;
   earnings: string;
   isAvailable: boolean;
-  todayEarnings?: string;
-  todayOrders?: number;
-  weeklyEarnings?: string;
-  rating?: number;
 }
 
 interface Notification {
@@ -40,36 +35,13 @@ export default function DriverApp() {
   const [myOrders, setMyOrders] = useState<Order[]>([]);
   const [notifications, setNotifications] = useState<Notification[]>([]);
   const [driver, setDriver] = useState<Driver | null>(null);
-  const [activeTab, setActiveTab] = useState<'available' | 'myorders' | 'profile' | 'stats'>('available');
+  const [activeTab, setActiveTab] = useState<'available' | 'myorders' | 'profile'>('available');
   const [isLoading, setIsLoading] = useState(false);
-  const [driverId, setDriverId] = useState<string>('');
-  const [isAuthenticated, setIsAuthenticated] = useState(false);
 
-  // التحقق من تسجيل الدخول عند تحميل المكون
+  // Mock driver ID - في التطبيق الحقيقي سيأتي من تسجيل الدخول
+  const driverId = 'a4538fc1-06db-416f-b359-38d8e79b0809';
+
   useEffect(() => {
-    const token = localStorage.getItem('driverToken');
-    const driverData = localStorage.getItem('driverUser');
-    
-    if (token && driverData) {
-      try {
-        const user = JSON.parse(driverData);
-        setDriverId(user.id);
-        setDriver(user);
-        setIsAuthenticated(true);
-      } catch (error) {
-        console.error('Error parsing driver data:', error);
-        handleLogout();
-      }
-    } else {
-      // إذا لم يكن مسجلاً، توجيه إلى صفحة تسجيل الدخول
-      window.location.href = '/driver-login';
-    }
-  }, []);
-
-  // جلب البيانات بعد التأكد من المصادقة
-  useEffect(() => {
-    if (!isAuthenticated || !driverId) return;
-
     fetchDriverInfo();
     fetchAvailableOrders();
     fetchMyOrders();
@@ -83,31 +55,11 @@ export default function DriverApp() {
     }, 30000);
 
     return () => clearInterval(interval);
-  }, [isAuthenticated, driverId]);
-
-  // دالة مساعدة للطلبات مع المصادقة
-  const fetchWithAuth = async (url: string, options: RequestInit = {}) => {
-    const token = localStorage.getItem('driverToken');
-    const headers = {
-      'Content-Type': 'application/json',
-      ...(token && { 'Authorization': `Bearer ${token}` }),
-      ...options.headers,
-    };
-    
-    const response = await fetch(url, { ...options, headers });
-    
-    if (response.status === 401) {
-      // تم انتهاء صلاحية التوكن، توجيه إلى تسجيل الدخول
-      handleLogout();
-      throw new Error('Authentication failed');
-    }
-    
-    return response;
-  };
+  }, []);
 
   const fetchDriverInfo = async () => {
     try {
-      const response = await fetchWithAuth(`/api/drivers/${driverId}`);
+      const response = await fetch(`/api/drivers/${driverId}`);
       const data = await response.json();
       setDriver(data);
     } catch (error) {
@@ -117,7 +69,7 @@ export default function DriverApp() {
 
   const fetchAvailableOrders = async () => {
     try {
-      const response = await fetchWithAuth(`/api/orders?status=confirmed`);
+      const response = await fetch(`/api/drivers/${driverId}/available-orders`);
       const data = await response.json();
       setAvailableOrders(data);
     } catch (error) {
@@ -127,9 +79,9 @@ export default function DriverApp() {
 
   const fetchMyOrders = async () => {
     try {
-      const response = await fetchWithAuth(`/api/orders?driverId=${driverId}&status=assigned,picked_up,on_way`);
+      const response = await fetch(`/api/orders?driverId=${driverId}`);
       const data = await response.json();
-      setMyOrders(data);
+      setMyOrders(data.filter((order: Order) => order.status !== 'delivered'));
     } catch (error) {
       console.error('خطأ في جلب طلباتي:', error);
     }
@@ -137,7 +89,7 @@ export default function DriverApp() {
 
   const fetchNotifications = async () => {
     try {
-      const response = await fetchWithAuth(`/api/notifications?recipientType=driver&recipientId=${driverId}&unread=true`);
+      const response = await fetch(`/api/notifications?recipientType=driver&recipientId=${driverId}&unread=true`);
       const data = await response.json();
       setNotifications(data);
     } catch (error) {
@@ -148,22 +100,18 @@ export default function DriverApp() {
   const acceptOrder = async (orderId: string) => {
     setIsLoading(true);
     try {
-      const response = await fetchWithAuth(`/api/orders/${orderId}/assign-driver`, {
+      const response = await fetch(`/api/orders/${orderId}/assign-driver`, {
         method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ driverId })
       });
       
       if (response.ok) {
         fetchAvailableOrders();
         fetchMyOrders();
-        // عرض رسالة نجاح
-        alert('تم قبول الطلب بنجاح');
-      } else {
-        throw new Error('Failed to accept order');
       }
     } catch (error) {
       console.error('خطأ في قبول الطلب:', error);
-      alert('فشل في قبول الطلب');
     } finally {
       setIsLoading(false);
     }
@@ -171,18 +119,17 @@ export default function DriverApp() {
 
   const updateOrderStatus = async (orderId: string, status: string) => {
     try {
-      const response = await fetchWithAuth(`/api/orders/${orderId}`, {
+      const response = await fetch(`/api/orders/${orderId}`, {
         method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ status })
       });
       
       if (response.ok) {
         fetchMyOrders();
-        alert(`تم تحديث حالة الطلب إلى: ${getStatusText(status)}`);
       }
     } catch (error) {
       console.error('خطأ في تحديث حالة الطلب:', error);
-      alert('فشل في تحديث حالة الطلب');
     }
   };
 
@@ -190,8 +137,9 @@ export default function DriverApp() {
     if (!driver) return;
     
     try {
-      const response = await fetchWithAuth(`/api/drivers/${driverId}`, {
+      const response = await fetch(`/api/drivers/${driverId}`, {
         method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ isAvailable: !driver.isAvailable })
       });
       
@@ -203,12 +151,6 @@ export default function DriverApp() {
     }
   };
 
-  const handleLogout = () => {
-    localStorage.removeItem('driverToken');
-    localStorage.removeItem('driverUser');
-    window.location.href = '/driver-login';
-  };
-
   const parseItems = (itemsJson: string) => {
     try {
       return JSON.parse(itemsJson);
@@ -217,49 +159,14 @@ export default function DriverApp() {
     }
   };
 
-  const getStatusText = (status: string) => {
-    switch (status) {
-      case 'assigned': return 'تم التكليف';
-      case 'picked_up': return 'تم الاستلام';
-      case 'on_way': return 'في الطريق';
-      case 'delivered': return 'تم التسليم';
-      default: return status;
-    }
-  };
-
-  const getStatusBadgeClass = (status: string) => {
-    switch (status) {
-      case 'assigned': return 'bg-blue-100 text-blue-800';
-      case 'picked_up': return 'bg-yellow-100 text-yellow-800';
-      case 'on_way': return 'bg-orange-100 text-orange-800';
-      case 'delivered': return 'bg-green-100 text-green-800';
-      default: return 'bg-gray-100 text-gray-800';
-    }
-  };
-
-  // إذا لم يكن مسجلاً، عرض رسالة تحميل
-  if (!isAuthenticated) {
-    return (
-      <div className="min-h-screen flex items-center justify-center">
-        <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
-          <p>جاري التحميل...</p>
-        </div>
-      </div>
-    );
-  }
-
   return (
-    <div className="max-w-6xl mx-auto p-4 bg-gray-50 min-h-screen">
+    <div className="max-w-4xl mx-auto p-4">
       {/* Header */}
       <div className="bg-white rounded-lg shadow-md p-6 mb-6">
         <div className="flex justify-between items-center">
           <div>
             <h1 className="text-2xl font-bold text-gray-800">مرحباً {driver?.name}</h1>
-            <p className="text-gray-600 flex items-center gap-1">
-              <DollarSign size={16} />
-              أرباحك اليوم: {driver?.todayEarnings || driver?.earnings || '0'} شيكل
-            </p>
+            <p className="text-gray-600">أرباحك اليوم: {driver?.earnings} شيكل</p>
           </div>
           <div className="flex items-center gap-4">
             <div className="relative">
@@ -272,76 +179,48 @@ export default function DriverApp() {
             </div>
             <button
               onClick={toggleAvailability}
-              className={`px-4 py-2 rounded-lg font-semibold flex items-center gap-2 ${
+              className={`px-4 py-2 rounded-lg font-semibold ${
                 driver?.isAvailable
                   ? 'bg-green-600 text-white hover:bg-green-700'
                   : 'bg-gray-600 text-white hover:bg-gray-700'
               }`}
             >
-              {driver?.isAvailable ? (
-                <>
-                  <div className="w-2 h-2 bg-white rounded-full animate-pulse"></div>
-                  متاح
-                </>
-              ) : (
-                'غير متاح'
-              )}
-            </button>
-            <button
-              onClick={handleLogout}
-              className="px-4 py-2 rounded-lg font-semibold bg-red-600 text-white hover:bg-red-700 flex items-center gap-2"
-            >
-              <LogOut size={16} />
-              تسجيل الخروج
+              {driver?.isAvailable ? 'متاح' : 'غير متاح'}
             </button>
           </div>
         </div>
       </div>
 
       {/* Navigation Tabs */}
-      <div className="flex space-x-1 mb-6 bg-white p-2 rounded-lg shadow-sm">
+      <div className="flex space-x-1 mb-6">
         <button
           onClick={() => setActiveTab('available')}
-          className={`px-4 py-2 rounded-lg font-medium flex items-center gap-2 ${
+          className={`px-4 py-2 rounded-lg font-medium ${
             activeTab === 'available'
               ? 'bg-blue-600 text-white'
-              : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+              : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
           }`}
         >
-          <Package size={18} />
           الطلبات المتاحة ({availableOrders.length})
         </button>
         <button
           onClick={() => setActiveTab('myorders')}
-          className={`px-4 py-2 rounded-lg font-medium flex items-center gap-2 ${
+          className={`px-4 py-2 rounded-lg font-medium ${
             activeTab === 'myorders'
               ? 'bg-blue-600 text-white'
-              : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+              : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
           }`}
         >
-          <Navigation size={18} />
           طلباتي ({myOrders.length})
         </button>
         <button
-          onClick={() => setActiveTab('stats')}
-          className={`px-4 py-2 rounded-lg font-medium flex items-center gap-2 ${
-            activeTab === 'stats'
-              ? 'bg-blue-600 text-white'
-              : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
-          }`}
-        >
-          <BarChart3 size={18} />
-          الإحصائيات
-        </button>
-        <button
           onClick={() => setActiveTab('profile')}
-          className={`px-4 py-2 rounded-lg font-medium flex items-center gap-2 ${
+          className={`px-4 py-2 rounded-lg font-medium ${
             activeTab === 'profile'
               ? 'bg-blue-600 text-white'
-              : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+              : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
           }`}
         >
-          <User size={18} />
           ملفي الشخصي
         </button>
       </div>
@@ -407,7 +286,7 @@ export default function DriverApp() {
                   className="w-full bg-blue-600 text-white py-3 rounded-lg font-semibold hover:bg-blue-700 disabled:opacity-50 flex items-center justify-center gap-2"
                 >
                   <CheckCircle size={20} />
-                  {isLoading ? 'جاري المعالجة...' : 'قبول الطلب'}
+                  قبول الطلب
                 </button>
               </div>
             ))
@@ -436,8 +315,15 @@ export default function DriverApp() {
                   </div>
                   <div className="text-right">
                     <p className="text-xl font-bold text-green-600">{order.totalAmount} شيكل</p>
-                    <span className={`px-2 py-1 text-xs font-semibold rounded-full ${getStatusBadgeClass(order.status)}`}>
-                      {getStatusText(order.status)}
+                    <span className={`px-2 py-1 text-xs font-semibold rounded-full ${
+                      order.status === 'assigned' ? 'bg-blue-100 text-blue-800' :
+                      order.status === 'picked_up' ? 'bg-yellow-100 text-yellow-800' :
+                      order.status === 'on_way' ? 'bg-orange-100 text-orange-800' :
+                      'bg-green-100 text-green-800'
+                    }`}>
+                      {order.status === 'assigned' ? 'تم التكليف' :
+                       order.status === 'picked_up' ? 'تم الاستلام' :
+                       order.status === 'on_way' ? 'في الطريق' : 'تم التسليم'}
                     </span>
                   </div>
                 </div>
@@ -485,58 +371,6 @@ export default function DriverApp() {
               </div>
             ))
           )}
-        </div>
-      )}
-
-      {/* Stats Tab */}
-      {activeTab === 'stats' && driver && (
-        <div className="space-y-6">
-          <h2 className="text-xl font-bold text-gray-800">الإحصائيات والأرباح</h2>
-          
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-            <div className="bg-white rounded-lg shadow-md p-6 text-center">
-              <div className="bg-blue-100 w-12 h-12 rounded-full flex items-center justify-center mx-auto mb-3">
-                <Package className="text-blue-600" size={24} />
-              </div>
-              <h3 className="text-2xl font-bold text-gray-800">{driver.todayOrders || 0}</h3>
-              <p className="text-gray-600">طلبات اليوم</p>
-            </div>
-            
-            <div className="bg-white rounded-lg shadow-md p-6 text-center">
-              <div className="bg-green-100 w-12 h-12 rounded-full flex items-center justify-center mx-auto mb-3">
-                <DollarSign className="text-green-600" size={24} />
-              </div>
-              <h3 className="text-2xl font-bold text-gray-800">{driver.todayEarnings || driver.earnings || '0'} شيكل</h3>
-              <p className="text-gray-600">أرباح اليوم</p>
-            </div>
-            
-            <div className="bg-white rounded-lg shadow-md p-6 text-center">
-              <div className="bg-purple-100 w-12 h-12 rounded-full flex items-center justify-center mx-auto mb-3">
-                <BarChart3 className="text-purple-600" size={24} />
-              </div>
-              <h3 className="text-2xl font-bold text-gray-800">{driver.weeklyEarnings || (parseInt(driver.earnings || '0') * 5).toString()} شيكل</h3>
-              <p className="text-gray-600">أرباح الأسبوع</p>
-            </div>
-          </div>
-          
-          <div className="bg-white rounded-lg shadow-md p-6">
-            <h3 className="text-lg font-semibold text-gray-800 mb-4">أفضل العملاء</h3>
-            <div className="space-y-3">
-              <div className="flex justify-between items-center p-3 bg-gray-50 rounded-lg">
-                <div>
-                  <p className="font-medium">محمد أحمد</p>
-                  <p className="text-sm text-gray-600">5 طلبات</p>
-                </div>
-                <div className="text-right">
-                  <p className="font-bold text-green-600">350 شيكل</p>
-                  <div className="flex items-center gap-1 text-yellow-500">
-                    <span>4.8</span>
-                  </div>
-                </div>
-              </div>
-              {/* يمكن إضافة المزيد من العملاء هنا */}
-            </div>
-          </div>
         </div>
       )}
 
