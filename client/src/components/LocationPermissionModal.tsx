@@ -58,6 +58,7 @@ export function LocationPermissionModal({ onPermissionGranted, onPermissionDenie
       requestFunction: requestCameraPermission
     }
   ];
+
   const checkPermissionStatus = async () => {
     if ('permissions' in navigator) {
       try {
@@ -131,6 +132,7 @@ export function LocationPermissionModal({ onPermissionGranted, onPermissionDenie
       return false;
     }
   };
+
   const getCurrentLocation = () => {
     if ('geolocation' in navigator) {
       navigator.geolocation.getCurrentPosition(
@@ -253,7 +255,6 @@ export function LocationPermissionModal({ onPermissionGranted, onPermissionDenie
               )}
             </div>
           )}
-          </div>
         </div>
       </DialogContent>
     </Dialog>
