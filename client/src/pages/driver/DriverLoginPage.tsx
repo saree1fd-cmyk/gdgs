@@ -23,7 +23,7 @@ export default function DriverLoginPage() {
   // إعادة توجيه إذا كان المستخدم مسجل دخول بالفعل
   useEffect(() => {
     if (user && user.userType === 'driver') {
-      setLocation('/driverapp');
+      setLocation('/driver');
     }
   }, [user, setLocation]);
 
@@ -50,7 +50,7 @@ export default function DriverLoginPage() {
         // حفظ بيانات السائق في localStorage
         localStorage.setItem('driver_token', result.token);
         localStorage.setItem('driver_user', JSON.stringify(result.user));
-        setLocation('/driverapp');
+        setLocation('/driver');
       } else {
         setError(result.message || 'فشل في تسجيل الدخول');
       }
