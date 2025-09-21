@@ -53,7 +53,7 @@ router.post("/", async (req, res) => {
     }
 
     // إنشاء رقم طلب فريد
-    const orderNumber = `ORD-${Date.now()}`;
+    const orderNumber = `ORD${Date.now()}`;
 
     // إنشاء الطلب
     const orderData = {
@@ -62,8 +62,6 @@ router.post("/", async (req, res) => {
       customerPhone,
       customerEmail: customerEmail || null,
       deliveryAddress,
-      customerLocationLat: customerLocationLat || null,
-      customerLocationLng: customerLocationLng || null,
       notes: notes || null,
       paymentMethod: paymentMethod || 'cash',
       status: 'pending',
@@ -227,11 +225,17 @@ router.patch("/:orderId/status", async (req, res) => {
     }
 
     // تحديث حالة الطلب
-    await storage.updateOrder(orderId, { status });
+    const updatedOrder = await storage.updateOrder(orderId, { 
+      status,
+      updatedAt: new Date()
+    });
+
+    if (!updatedOrder) {
+      return res.status(404).json({ error: "الطلب غير موجود" });
+    }
 
     // الحصول على الطلب المحدث
-    const orders = await storage.getOrders();
-    const order = orders.find(o => o.id === orderId);
+    const order = updatedOrder;
 
     // إنشاء تتبع للطلب
     let statusMessage = '';
@@ -271,21 +275,19 @@ router.patch("/:orderId/status", async (req, res) => {
       });
 
       // إرسال إشعار للعميل
-      if (order) {
         await storage.createNotification({
           type: 'order_status',
           title: 'تحديث حالة الطلب',
           message: `طلبك رقم ${order.orderNumber}: ${statusMessage}`,
           recipientType: 'customer',
-          recipientId: order.customerId || order.customerPhone,
+          recipientId: order.customerId || null,
           orderId
         });
-      }
     } catch (trackingError) {
       console.error('Error creating tracking:', trackingError);
     }
 
-    res.json({ success: true, status });
+    res.json({ success: true, status, order: updatedOrder });
   } catch (error) {
     console.error("Update order status error:", error);
     res.status(500).json({ error: "Internal server error" });
