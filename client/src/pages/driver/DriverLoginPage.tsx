@@ -7,6 +7,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Loader2, Truck, Phone, Lock, Eye, EyeOff } from 'lucide-react';
+import { apiRequest } from '@/lib/queryClient';
 
 export default function DriverLoginPage() {
   const [, setLocation] = useLocation();
@@ -38,15 +39,9 @@ export default function DriverLoginPage() {
     }
 
     try {
-      const response = await fetch('/api/auth/driver/login', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          phone: formData.phone,
-          password: formData.password,
-        }),
+      const response = await apiRequest('POST', '/api/auth/driver/login', {
+        phone: formData.phone,
+        password: formData.password,
       });
 
       const result = await response.json();
@@ -55,13 +50,13 @@ export default function DriverLoginPage() {
         // حفظ بيانات السائق في localStorage
         localStorage.setItem('driver_token', result.token);
         localStorage.setItem('driver_user', JSON.stringify(result.user));
-        setLocation('/driver');
+        setLocation('/delivery');
       } else {
         setError(result.message || 'فشل في تسجيل الدخول');
       }
     } catch (error) {
       console.error('Driver login error:', error);
-      setError('حدث خطأ غير متوقع');
+      setError('حدث خطأ غير متوقع. يرجى المحاولة مرة أخرى.');
     } finally {
       setIsSubmitting(false);
     }
@@ -110,7 +105,7 @@ export default function DriverLoginPage() {
           <CardContent>
             <form onSubmit={handleSubmit} className="space-y-6">
               {error && (
-                <Alert className="border-red-200 bg-red-50">
+                <Alert variant="destructive" className="border-red-200 bg-red-50">
                   <AlertDescription className="text-red-800">
                     {error}
                   </AlertDescription>
